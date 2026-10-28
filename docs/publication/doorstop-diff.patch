@@ -1,0 +1,541 @@
+diff --git a/CHANGES.md b/CHANGES.md
+index 859a062..69d468f 100644
+--- a/CHANGES.md
++++ b/CHANGES.md
+@@ -1,3 +1,24 @@
++# Compatibility changes, 2026-10-28
++
++This fork is based on NeighTools/UnityDoorstop commit
++`1c3ece1f1e6c20f4aa74d5402baabf8a0098d282`. The upstream GNU LGPL 2.1
++license and notices are retained.
++
++- Add validated canonical IL2CPP export aliases and refresh missing or stale maps
++  using a configured external helper, outside the Windows loader lock.
++- Recognize a mapped `il2cpp_init` export and resolve the supporting native APIs
++  before installing the initialization hook.
++- Apply the same resolver to CoreCLR imports for managed P/Invoke and
++  `NativeLibrary.GetExport`.
++- Add a Windows x64 build script using existing Visual Studio C++ tools and
++  MASM; it does not download or install a compiler or build system.
++
++Only the final compatibility implementation is included. Debug-symbol/PDB
++resolvers and abandoned experimental implementations are not part of this fork.
++See [COMPATIBILITY.md](COMPATIBILITY.md) for setup, scope, and build instructions.
++
++---
++
+ # Breaking changes from UnityDoorstop 3.x
+ 
+ This version of Doorstop is almost a complete rewrite of previous versions.
+diff --git a/COMPATIBILITY.md b/COMPATIBILITY.md
+new file mode 100644
+index 0000000..990433d
+--- /dev/null
++++ b/COMPATIBILITY.md
+@@ -0,0 +1,67 @@
++# IL2CPP compatibility fork
++
++This branch preserves the upstream UnityDoorstop history and is based on
++[NeighTools/UnityDoorstop commit 1c3ece1](https://github.com/NeighTools/UnityDoorstop/commit/1c3ece1f1e6c20f4aa74d5402baabf8a0098d282).
++The compatibility changes are maintained by David Salas Kalendar, dated
++2026-10-28. The original [GNU LGPL 2.1 license](LICENSE) remains in force.
++
++## Behavior
++
++The Windows loader can resolve renamed IL2CPP exports using a canonical API map
++produced from the paired `UnityPlayer.dll` and `GameAssembly.dll` binaries. It
++validates the map format, discovery method, PE image identity, export name, and
++export RVA before using an alias. It applies those aliases to Doorstop's native
++lookups and CoreCLR imports. The original Windows export lookup remains the
++first choice.
++
++When the map is absent or stale and refresh is enabled, Doorstop starts the
++configured Python helper from Unity's API-binding path, after GameAssembly has
++loaded. It never starts that helper from `DllEntry`. The helper process has a
++90-second wait limit. The helper and its dependencies are supplied by the
++separate compatibility integration package, not by this native repository.
++
++Example integration configuration, relative to the game directory:
++
++```ini
++[Compatibility]
++auto_refresh=true
++helper_script=BepInEx\compatibility\tools\prepare_api_map.py
++python_executable=BepInEx\compatibility\python\python.exe
++```
++
++No game binaries, precomputed game API maps, game metadata, symbol files, or
++symbol-download implementation are included here. Native source changes contain
++no build-specific game addresses. A future native API/metadata redesign can
++still require changes to the discovery or normalization implementation.
++
++## Build with existing Visual Studio tools
++
++From the repository root in PowerShell on Windows:
++
++```powershell
++.\build-msvc.ps1 -Release
++```
++
++Prerequisites are an existing Visual Studio installation with the x64 C++ build
++tools, Windows SDK, and MASM. The script locates that installation through
++`vswhere`, enters its developer environment, generates proxy tail jumps from
++upstream `src/windows/proxy/proxylist.txt`, and compiles/links the maintained
++sources. It does not install a compiler, SDK, xmake, or other build system.
++
++Outputs are `build/msvc-x64/winhttp.dll` and
++`build/msvc-x64/.doorstop_version`. Omit `-Release` to enable verbose native
++logging. Generated C, assembly, object files, and the export definition remain
++under the ignored `build` directory. This custom build path is Windows x64 only.
++The original upstream xmake build files are retained separately.
++
++To rebuild the integration package, use its documented build scripts and point
++its native source input at this fork. The native DLL alone does not supply the
++API discovery helper, metadata bootstrap, BepInEx, Python, or CoreCLR.
++
++## License and distribution
++
++The six modified or added native C/header files carry dated modification
++notices. [CHANGES.md](CHANGES.md) lists the changes. Preserve the original license
++and copyright notices and provide the corresponding modified source when
++redistributing the native binary under the applicable LGPL terms. This fork
++does not change the licenses of separately distributed integration dependencies.
+diff --git a/README.md b/README.md
+index dda8d33..a930107 100644
+--- a/README.md
++++ b/README.md
+@@ -1,3 +1,7 @@
++> This branch contains the Windows IL2CPP compatibility changes documented in
++> [COMPATIBILITY.md](COMPATIBILITY.md). Use `build-msvc.ps1 -Release` to build with
++> existing Visual Studio tools without installing a compiler or xmake.
++
+ <p align="center">
+   <img height="256" width="256" src="assets/img/icon.png">
+ </p>
+diff --git a/build-msvc.ps1 b/build-msvc.ps1
+new file mode 100644
+index 0000000..15f77be
+--- /dev/null
++++ b/build-msvc.ps1
+@@ -0,0 +1,58 @@
++param([switch]$Release)
++$ErrorActionPreference = 'Stop'
++$sourceRoot = $PSScriptRoot
++$buildRoot = Join-Path $sourceRoot 'build/msvc-x64'
++New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
++$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
++$vsRoot = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
++if (-not $vsRoot) { throw 'Existing Visual Studio C++ build tools were not found. No compiler will be installed.' }
++Import-Module (Join-Path $vsRoot 'Common7/Tools/Microsoft.VisualStudio.DevShell.dll')
++Enter-VsDevShell -VsInstallPath $vsRoot -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null
++
++# Assembly tail jumps preserve all native arguments and the return address.
++$functions = @(Get-Content -LiteralPath (Join-Path $sourceRoot 'src/windows/proxy/proxylist.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
++$c = [Collections.Generic.List[string]]::new()
++$asm = [Collections.Generic.List[string]]::new()
++$def = [Collections.Generic.List[string]]::new()
++$c.Add('#include <windows.h>')
++$asm.Add('option casemap:none')
++$def.Add('EXPORTS')
++foreach ($fn in $functions) {
++    if ($fn -notmatch '^[A-Za-z_][A-Za-z_0-9]*$') { throw 'Invalid upstream proxy function name.' }
++    $c.Add("FARPROC proxy_$fn;")
++    $asm.Add("EXTERN proxy_${fn}:QWORD")
++    $def.Add("$fn=exp_$fn")
++}
++$c.Add('void load_functions(void *dll) {')
++foreach ($fn in $functions) { $c.Add("proxy_$fn = GetProcAddress((HMODULE)dll, `"$fn`" );") }
++$c.Add('}')
++$asm.Add('.code')
++foreach ($fn in $functions) {
++    $asm.Add("exp_$fn PROC")
++    $asm.Add("jmp QWORD PTR [proxy_$fn]")
++    $asm.Add("exp_$fn ENDP")
++}
++$asm.Add('END')
++$c | Set-Content -LiteralPath (Join-Path $buildRoot 'proxy.c') -Encoding ascii
++$asm | Set-Content -LiteralPath (Join-Path $buildRoot 'proxy.asm') -Encoding ascii
++$def | Set-Content -LiteralPath (Join-Path $buildRoot 'doorstop.def') -Encoding ascii
++
++Push-Location $buildRoot
++try {
++    & ml64.exe /nologo /c /Fo'proxy_asm.obj' 'proxy.asm'
++    if ($LASTEXITCODE -ne 0) { throw 'Proxy assembly build failed.' }
++    $sources = @('src/windows/*.c', 'src/*.c', 'src/config/*.c', 'src/util/*.c', 'src/runtimes/*.c') | ForEach-Object {
++        Get-ChildItem -Path (Join-Path $sourceRoot $_) -File | ForEach-Object { $_.FullName }
++    }
++    $compileArgs = @('/nologo','/c','/O1','/Ob2','/GS-','/MT','/GL-','/DUNICODE','/D_UNICODE','/W3')
++    if (-not $Release) { $compileArgs += '/DVERBOSE=1' }
++    & cl.exe @compileArgs @sources 'proxy.c'
++    if ($LASTEXITCODE -ne 0) { throw 'Doorstop compilation failed.' }
++    $objects = @($sources | ForEach-Object { Join-Path $buildRoot ([IO.Path]::GetFileNameWithoutExtension($_) + '.obj') })
++    $objects += @((Join-Path $buildRoot 'proxy.obj'), (Join-Path $buildRoot 'proxy_asm.obj'))
++    & link.exe /nologo /dll /nodefaultlib /entry:DllEntry /dynamicbase /out:winhttp.dll /def:doorstop.def @objects kernel32.lib shell32.lib user32.lib
++    if ($LASTEXITCODE -ne 0) { throw 'Doorstop linking failed.' }
++    Set-Content -LiteralPath '.doorstop_version' -Value '4.6.0-binary-api-compatibility' -Encoding ascii
++} finally { Pop-Location }
++Write-Host "Built x64 Doorstop with $vsRoot"
++Write-Host (Join-Path $buildRoot 'winhttp.dll')
+diff --git a/src/bootstrap.c b/src/bootstrap.c
+index 4e11d2d..0d0b8b6 100644
+--- a/src/bootstrap.c
++++ b/src/bootstrap.c
+@@ -1,3 +1,8 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
+ #include "bootstrap.h"
+ #include "config/config.h"
+ #include "crt.h"
+@@ -7,6 +12,10 @@
+ #include "util/logging.h"
+ #include "util/paths.h"
+ #include "util/util.h"
++#if _WIN32
++#include "windows/hook.h"
++#include "windows/il2cpp_resolver.h"
++#endif
+ 
+ bool_t mono_debug_init_called = FALSE;
+ bool_t mono_is_net35 = FALSE;
+@@ -268,6 +277,17 @@ void il2cpp_doorstop_bootstrap() {
+         return;
+     }
+ 
++#if _WIN32
++    /* Managed P/Invoke and NativeLibrary.GetExport also need canonical API
++       aliases. Scope the hook to CoreCLR; preserve its ordinary lookups. */
++    if (iat_hook(coreclr_module, "kernel32.dll", &GetProcAddress,
++                 &doorstop_get_proc_address)) {
++        LOG("Installed CoreCLR IL2CPP export resolver");
++    } else {
++        LOG("CoreCLR export hook unavailable; managed canonical API lookup may fail");
++    }
++#endif
++
+     load_coreclr_funcs(coreclr_module);
+ 
+     char_t *app_path = program_path();
+@@ -436,4 +456,4 @@ void *hook_mono_image_open_from_data_with_name(void *data,
+ void hook_mono_debug_init(MonoDebugFormat format) {
+     mono_debug_init_called = TRUE;
+     mono.debug_init(format);
+-}
+\ No newline at end of file
++}
+diff --git a/src/windows/entrypoint.c b/src/windows/entrypoint.c
+index 663a477..0008b42 100644
+--- a/src/windows/entrypoint.c
++++ b/src/windows/entrypoint.c
+@@ -1,3 +1,8 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
+ #include "entrypoint.h"
+ #include "../bootstrap.h"
+ #include "../config/config.h"
+@@ -5,6 +10,8 @@
+ #include "../util/logging.h"
+ #include "../util/paths.h"
+ #include "hook.h"
++#include "il2cpp_resolver.h"
++#include "../runtimes/il2cpp.h"
+ #include "proxy/proxy.h"
+ 
+ /**
+@@ -140,6 +147,25 @@ void capture_mono_path(void *handle) {
+ 
+ bool_t initialized = FALSE;
+ void *WINAPI get_proc_address_detour(void *module, char *name) {
++    char init_alias[256];
++    if (HIWORD(name)) doorstop_prepare_api_map(module);
++    /* Unity may request a renamed export. Resolve identity from a validated,
++       automatically generated map before applying the normal init hook. */
++    if (HIWORD(name) &&
++        (lstrcmpA(name, "il2cpp_init") == 0 ||
++         (doorstop_export_alias(module, "il2cpp_init", init_alias, sizeof(init_alias)) &&
++          lstrcmpA(name, init_alias) == 0))) {
++        if (!initialized) {
++            load_il2cpp_funcs(module);
++            if (!il2cpp.init || !il2cpp.runtime_invoke || !il2cpp.method_get_name) {
++                LOG("IL2CPP API resolution failed; leaving original init unchanged");
++                return (void *)GetProcAddress(module, name);
++            }
++            initialized = TRUE;
++            LOG("Resolved IL2CPP initialization and supporting APIs");
++        }
++        return (void *)init_il2cpp;
++    }
+     // If the lpProcName pointer contains an ordinal rather than a string,
+     // high-word value of the pointer is zero (see PR #66)
+ #define REDIRECT_INIT(init_name, init_func, target, extra_init)                \
+@@ -154,7 +180,6 @@ void *WINAPI get_proc_address_detour(void *module, char *name) {
+         return (void *)(target);                                               \
+     }
+ 
+-    REDIRECT_INIT("il2cpp_init", load_il2cpp_funcs, init_il2cpp, {});
+     REDIRECT_INIT("mono_jit_init_version", load_mono_funcs, init_mono,
+                   capture_mono_path(module));
+     REDIRECT_INIT("mono_image_open_from_data_with_name", load_mono_funcs,
+diff --git a/src/windows/il2cpp_resolver.c b/src/windows/il2cpp_resolver.c
+new file mode 100644
+index 0000000..fdbbfd0
+--- /dev/null
++++ b/src/windows/il2cpp_resolver.c
+@@ -0,0 +1,74 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
++#include "il2cpp_resolver.h"
++
++static BOOL parse_hex(const char *text, DWORD *value) {
++    DWORD result = 0;
++    unsigned int count = 0;
++    for (; *text; ++text) {
++        unsigned int digit;
++        if (*text >= '0' && *text <= '9') digit = *text - '0';
++        else if (*text >= 'a' && *text <= 'f') digit = *text - 'a' + 10;
++        else if (*text >= 'A' && *text <= 'F') digit = *text - 'A' + 10;
++        else return FALSE;
++        if (++count > 8) return FALSE;
++        result = (result << 4) | digit;
++    }
++    if (!count) return FALSE;
++    *value = result;
++    return TRUE;
++}
++
++BOOL doorstop_export_alias(HMODULE module, const char *canonical,
++                           char *alias, DWORD capacity) {
++    char value[256], stamp_text[32], size_text[32], discovery[64];
++    DWORD stamp, size, expected_rva, length;
++    IMAGE_DOS_HEADER *dos;
++    IMAGE_NT_HEADERS *nt;
++    unsigned int separator = 0;
++    if (!module || !canonical || !HIWORD(canonical) || !alias || capacity < 2) return FALSE;
++    /* Scope aliases to the game runtime; unrelated DLL lookups stay intact. */
++    if (module != GetModuleHandleW(L"GameAssembly.dll")) return FALSE;
++    /* Retire maps produced by the previous discovery implementation, even if
++       this game build is unchanged, so upgrading performs fresh discovery. */
++    if (GetPrivateProfileIntA("Target", "Format", 0, ".\\doorstop_api.ini") != 2) return FALSE;
++    GetPrivateProfileStringA("Target", "Discovery", "", discovery, sizeof(discovery), ".\\doorstop_api.ini");
++    if (lstrcmpA(discovery, "binary-loader-schema")) return FALSE;
++    if (!GetPrivateProfileStringA("Target", "TimeDateStamp", "", stamp_text,
++                                  sizeof(stamp_text), ".\\doorstop_api.ini") ||
++        !GetPrivateProfileStringA("Target", "SizeOfImage", "", size_text,
++                                  sizeof(size_text), ".\\doorstop_api.ini") ||
++        !parse_hex(stamp_text, &stamp) || !parse_hex(size_text, &size)) return FALSE;
++    dos = (IMAGE_DOS_HEADER *)module;
++    if (dos->e_magic != IMAGE_DOS_SIGNATURE || dos->e_lfanew <= 0 || dos->e_lfanew > 0x100000) return FALSE;
++    nt = (IMAGE_NT_HEADERS *)((BYTE *)module + dos->e_lfanew);
++    if (nt->Signature != IMAGE_NT_SIGNATURE ||
++        nt->FileHeader.TimeDateStamp != stamp || nt->OptionalHeader.SizeOfImage != size) return FALSE;
++    length = GetPrivateProfileStringA("Exports", canonical, "", value,
++                                      sizeof(value), ".\\doorstop_api.ini");
++    if (!length || length >= sizeof(value) - 1) return FALSE;
++    while (separator < length && value[separator] != ',') ++separator;
++    if (!separator || separator >= capacity || separator == length) return FALSE;
++    value[separator] = 0;
++    if (!parse_hex(value + separator + 1, &expected_rva) || expected_rva >= size) return FALSE;
++    if (GetProcAddress(module, value) != (FARPROC)((BYTE *)module + expected_rva)) return FALSE;
++    for (unsigned int i = 0; i <= separator; ++i) alias[i] = value[i];
++    return TRUE;
++}
++
++FARPROC doorstop_resolve_export(HMODULE module, const char *canonical) {
++    char alias[256];
++    if (!canonical) return NULL;
++    FARPROC address = GetProcAddress(module, canonical);
++    if (address || !HIWORD(canonical)) return address;
++    if (doorstop_export_alias(module, canonical, alias, sizeof(alias)))
++        return GetProcAddress(module, alias);
++    return NULL;
++}
++
++FARPROC WINAPI doorstop_get_proc_address(HMODULE module, LPCSTR name) {
++    return doorstop_resolve_export(module, name);
++}
+diff --git a/src/windows/il2cpp_resolver.h b/src/windows/il2cpp_resolver.h
+new file mode 100644
+index 0000000..c222bd2
+--- /dev/null
++++ b/src/windows/il2cpp_resolver.h
+@@ -0,0 +1,16 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
++#ifndef DOORSTOP_IL2CPP_RESOLVER_H
++#define DOORSTOP_IL2CPP_RESOLVER_H
++#include <windows.h>
++
++/* Map discovered from the paired native binaries, never from fixed offsets. */
++BOOL doorstop_export_alias(HMODULE module, const char *canonical,
++                           char *alias, DWORD capacity);
++FARPROC doorstop_resolve_export(HMODULE module, const char *canonical);
++FARPROC WINAPI doorstop_get_proc_address(HMODULE module, LPCSTR name);
++void doorstop_prepare_api_map(HMODULE module);
++#endif
+diff --git a/src/windows/map_refresh.c b/src/windows/map_refresh.c
+new file mode 100644
+index 0000000..1491cfa
+--- /dev/null
++++ b/src/windows/map_refresh.c
+@@ -0,0 +1,119 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
++#include "../crt.h"
++#include "../util/logging.h"
++#include "il2cpp_resolver.h"
++
++static volatile LONG preparation_state;
++
++static BOOL current_map_is_valid(HMODULE module) {
++    char alias[256];
++    return doorstop_export_alias(module, "il2cpp_init", alias, sizeof(alias)) &&
++           doorstop_export_alias(module, "il2cpp_runtime_invoke", alias, sizeof(alias)) &&
++           doorstop_export_alias(module, "il2cpp_method_get_name", alias, sizeof(alias));
++}
++
++static BOOL safe_argument(const WCHAR *value) {
++    if (!*value) return FALSE;
++    for (; *value; ++value)
++        if (*value == L'"' || *value == L'\r' || *value == L'\n') return FALSE;
++    return TRUE;
++}
++
++/* Called from UnityPlayer's API binder, after LoadLibrary(GameAssembly) returns.
++   Never called from DllEntry: starting/waiting for a helper under loader lock
++   would be unsafe. Existing valid maps take this path without spawning anything. */
++void doorstop_prepare_api_map(HMODULE module) {
++    LONG previous;
++    WCHAR *storage, *python, *helper, *resolved_python, *command;
++    DWORD length, exit_code = 1, wait_result;
++    STARTUPINFOW startup = {0};
++    PROCESS_INFORMATION process = {0};
++    SECURITY_ATTRIBUTES security = {sizeof(SECURITY_ATTRIBUTES), NULL, TRUE};
++    HANDLE output = INVALID_HANDLE_VALUE, input = INVALID_HANDLE_VALUE;
++    BOOL started;
++    WCHAR refresh_option[8];
++    if (!module || module != GetModuleHandleW(L"GameAssembly.dll")) return;
++    if (GetProcAddress(module, "il2cpp_init")) return;
++    previous = InterlockedCompareExchange(&preparation_state, 1, 0);
++    if (previous) {
++        while (InterlockedCompareExchange(&preparation_state, 0, 0) == 1) Sleep(10);
++        return;
++    }
++    if (current_map_is_valid(module)) goto finished;
++    GetPrivateProfileStringW(L"Compatibility", L"auto_refresh", L"false", refresh_option,
++                             8, L".\\doorstop_config.ini");
++    if (lstrcmpiW(refresh_option, L"true") && lstrcmpW(refresh_option, L"1")) goto finished;
++    LOG("API map missing or stale; discovering bindings from native binaries");
++    storage = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, 6144 * sizeof(WCHAR));
++    if (!storage) goto finished;
++    python = storage;
++    helper = storage + 1024;
++    resolved_python = storage + 2048;
++    command = storage + 3072;
++    length = GetPrivateProfileStringW(L"Compatibility", L"python_executable", L"python.exe",
++                                      python, 1024, L".\\doorstop_config.ini");
++    if (!length || length >= 1023 || !safe_argument(python)) goto cleanup;
++    length = GetPrivateProfileStringW(L"Compatibility", L"helper_script",
++                                      L"BepInEx\\compatibility\\tools\\prepare_api_map.py",
++                                      helper, 1024, L".\\doorstop_config.ini");
++    if (!length || length >= 1023 || !safe_argument(helper)) goto cleanup;
++    if (GetFileAttributesW(helper) == INVALID_FILE_ATTRIBUTES) {
++        LOG("API refresh helper was not found");
++        goto cleanup;
++    }
++    length = SearchPathW(NULL, python, NULL, 1024, resolved_python, NULL);
++    if (!length || length >= 1024 || !safe_argument(resolved_python)) {
++        LOG("Existing Python executable was not found; API map was not refreshed");
++        goto cleanup;
++    }
++    /* No command shell. Both executable and script are separately quoted. */
++    lstrcpyW(command, L"\"");
++    lstrcatW(command, resolved_python);
++    lstrcatW(command, L"\" -B -X utf8 \"");
++    lstrcatW(command, helper);
++    lstrcatW(command, L"\" --unity UnityPlayer.dll --game GameAssembly.dll --output doorstop_api.ini --json BepInEx\\cache\\compatibility\\api-map.json");
++    CreateDirectoryW(L"BepInEx", NULL);
++    CreateDirectoryW(L"BepInEx\\cache", NULL);
++    CreateDirectoryW(L"BepInEx\\cache\\compatibility", NULL);
++    output = CreateFileW(L"BepInEx\\cache\\compatibility\\api-refresh.log", GENERIC_WRITE,
++                         FILE_SHARE_READ, &security, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
++    input = CreateFileW(L"NUL", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE,
++                        &security, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
++    if (output == INVALID_HANDLE_VALUE || input == INVALID_HANDLE_VALUE) goto cleanup;
++    startup.cb = sizeof(startup);
++    startup.dwFlags = STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
++    startup.wShowWindow = SW_HIDE;
++    startup.hStdOutput = output;
++    startup.hStdError = output;
++    startup.hStdInput = input;
++    started = CreateProcessW(resolved_python, command, NULL, NULL, TRUE,
++                              CREATE_NO_WINDOW, NULL, NULL, &startup, &process);
++    if (!started) {
++        LOG("Could not start API refresh helper (Windows error %lu)", GetLastError());
++        goto cleanup;
++    }
++    CloseHandle(process.hThread);
++    wait_result = WaitForSingleObject(process.hProcess, 90000);
++    if (wait_result == WAIT_OBJECT_0) GetExitCodeProcess(process.hProcess, &exit_code);
++    else {
++        TerminateProcess(process.hProcess, 1);
++        LOG("API refresh helper timed out or could not be waited for");
++    }
++    CloseHandle(process.hProcess);
++    WritePrivateProfileStringW(NULL, NULL, NULL, L".\\doorstop_api.ini");
++    if (!exit_code && current_map_is_valid(module)) {
++        LOG("API bindings refreshed and validated successfully");
++    } else {
++        LOG("API refresh failed; original game API calls are preserved. See BepInEx/cache/compatibility/api-refresh.log");
++    }
++cleanup:
++    if (input != INVALID_HANDLE_VALUE) CloseHandle(input);
++    if (output != INVALID_HANDLE_VALUE) CloseHandle(output);
++    HeapFree(GetProcessHeap(), 0, storage);
++finished:
++    InterlockedExchange(&preparation_state, 2);
++}
+diff --git a/src/windows/wincrt.c b/src/windows/wincrt.c
+index a78ba75..59bc7d4 100644
+--- a/src/windows/wincrt.c
++++ b/src/windows/wincrt.c
+@@ -1,4 +1,10 @@
++/*
++ * IL2CPP compatibility changes by David Salas Kalendar, 2026-10-28.
++ * Based on UnityDoorstop; distributed under the GNU LGPL 2.1 (see LICENSE).
++ * See COMPATIBILITY.md and CHANGES.md for the changes and upstream revision.
++ */
+ #include "wincrt.h"
++#include "il2cpp_resolver.h"
+ 
+ static HANDLE h_heap;
+ 
+@@ -22,7 +28,7 @@ void *memcpy(void *dst, const void *src, size_t n) {
+ }
+ 
+ void *dlsym(void *handle, const char *name) {
+-    return GetProcAddress((HMODULE)handle, name);
++    return doorstop_resolve_export((HMODULE)handle, name);
+ }
+ 
+ void *dlopen(const char_t *filename, int flag) { return LoadLibrary(filename); }
+@@ -168,4 +174,4 @@ LPSTR *CommandLineToArgvA(LPCSTR cmd_line, int *argc) {
+     (*argc) = _argc;
+     return argv;
+ }
+-#endif
+\ No newline at end of file
++#endif
