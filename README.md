@@ -1,7 +1,8 @@
-# CarX Unity compatibility
+# CarX Drift Racing Online 2 — UnityDoorstop & BepInEx Fix
 
-Symbol-free UnityDoorstop/BepInEx compatibility for
-CarX Drift Racing Online 2 on Windows x64.
+Loader compatibility fixes for **CarX Drift Racing Online 2 (Steam, Windows x64)**.
+Enables UnityDoorstop and BepInEx 6 Unity IL2CPP by discovering native API bindings
+without PDB files and normalizing the game's supported metadata formats.
 
 ## Downloads
 

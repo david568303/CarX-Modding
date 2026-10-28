@@ -1,6 +1,7 @@
-# Publishing and future releases
+# Publishing CarX Drift Racing Online 2 compatibility releases
 
-The two public repositories belong to `david568303`:
+These repositories publish the UnityDoorstop/BepInEx loader compatibility work
+for **CarX Drift Racing Online 2** on Windows x64. Both belong to `david568303`:
 
 1. `UnityDoorstop` retains the original upstream history and LGPL license. Its
    `carx-compatibility` branch contains the surviving native changes in separate commits.
