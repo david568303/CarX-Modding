@@ -1,0 +1,5 @@
+EXPORTS
+    SyntheticBootstrap=renamed_bootstrap @1
+    SyntheticInvoke=renamed_invoke @2
+    il2cpp_already_present=already_present @3
+    ordinal_only @123 NONAME

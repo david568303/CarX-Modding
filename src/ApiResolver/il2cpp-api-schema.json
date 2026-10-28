@@ -1,0 +1,1708 @@
+{
+  "format": 1,
+  "contract": "Unity IL2CPP native C API declaration schema",
+  "sources": [
+    {
+      "role": "canonical-declarations",
+      "url": "https://fexteamsc.com/sreeraj/GamesData/raw/commit/538af8394421d46c08bfdacd1206805b6843c4d6/GameUploadDocuments/4.CricMania/Builds/Unity_Build/Build/Il2CppOutputProject/IL2CPP/libil2cpp/il2cpp-api-functions.h",
+      "sha256": "f08ee6d28cb8b849715b0241dcc09d31296b090bf34bd311c0f215ec5397cde6",
+      "description": "Independent Unity-generated IL2CPP SDK API declaration artifact from an unrelated project; no game bindings or addresses."
+    },
+    {
+      "role": "first-party-relative-order-crosscheck",
+      "url": "https://raw.githubusercontent.com/Unity-Technologies/SimpleUIDemo/master/Tiny3D/Library/DotsRuntimeBuild/artifacts/Stevedore/il2cpp/libil2cpp/il2cpp-api-functions.h",
+      "sha256": "eb8abc97ca0740bab88fcd2cb5b6b51ae368937d581d83c53d0a96407823a91d",
+      "shared_declarations": 222,
+      "identical_relative_order": true
+    }
+  ],
+  "functions": [
+    {
+      "name": "il2cpp_init",
+      "return_type": "int",
+      "parameters": "const char* domain_name",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_init_utf16",
+      "return_type": "int",
+      "parameters": "const Il2CppChar * domain_name",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_shutdown",
+      "return_type": "void",
+      "parameters": "",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_config_dir",
+      "return_type": "void",
+      "parameters": "const char *config_path",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_data_dir",
+      "return_type": "void",
+      "parameters": "const char *data_path",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_temp_dir",
+      "return_type": "void",
+      "parameters": "const char *temp_path",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_commandline_arguments",
+      "return_type": "void",
+      "parameters": "int argc, const char* const argv[], const char* basedir",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_commandline_arguments_utf16",
+      "return_type": "void",
+      "parameters": "int argc, const Il2CppChar * const argv[], const char* basedir",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_config_utf16",
+      "return_type": "void",
+      "parameters": "const Il2CppChar * executablePath",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_config",
+      "return_type": "void",
+      "parameters": "const char* executablePath",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_memory_callbacks",
+      "return_type": "void",
+      "parameters": "Il2CppMemoryCallbacks * callbacks",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_memory_pool_set_region_size",
+      "return_type": "void",
+      "parameters": "size_t size",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_memory_pool_get_region_size",
+      "return_type": "size_t",
+      "parameters": "",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_get_corlib",
+      "return_type": "const Il2CppImage*",
+      "parameters": "",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_add_internal_call",
+      "return_type": "void",
+      "parameters": "const char* name, Il2CppMethodPointer method",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_resolve_icall",
+      "return_type": "Il2CppMethodPointer",
+      "parameters": "const char* name",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_alloc",
+      "return_type": "void*",
+      "parameters": "size_t size",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_free",
+      "return_type": "void",
+      "parameters": "void* ptr",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_class_get",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * element_class, uint32_t rank",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_length",
+      "return_type": "uint32_t",
+      "parameters": "Il2CppArray * array",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_get_byte_length",
+      "return_type": "uint32_t",
+      "parameters": "Il2CppArray * array",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_new",
+      "return_type": "Il2CppArray*",
+      "parameters": "Il2CppClass * elementTypeInfo, il2cpp_array_size_t length",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_new_specific",
+      "return_type": "Il2CppArray*",
+      "parameters": "Il2CppClass * arrayTypeInfo, il2cpp_array_size_t length",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_new_full",
+      "return_type": "Il2CppArray*",
+      "parameters": "Il2CppClass * array_class, il2cpp_array_size_t * lengths, il2cpp_array_size_t * lower_bounds",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_bounded_array_class_get",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * element_class, uint32_t rank, bool bounded",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_element_size",
+      "return_type": "int",
+      "parameters": "const Il2CppClass * array_class",
+      "group": "array",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_assembly_get_image",
+      "return_type": "const Il2CppImage*",
+      "parameters": "const Il2CppAssembly * assembly",
+      "group": "assembly",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_for_each",
+      "return_type": "void",
+      "parameters": "void(*klassReportFunc)(Il2CppClass* klass, void* userData), void* userData",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_enum_basetype",
+      "return_type": "const Il2CppType*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_inited",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_generic",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_inflated",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_assignable_from",
+      "return_type": "bool",
+      "parameters": "Il2CppClass * klass, Il2CppClass * oklass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_subclass_of",
+      "return_type": "bool",
+      "parameters": "Il2CppClass * klass, Il2CppClass * klassc, bool check_interfaces",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_has_parent",
+      "return_type": "bool",
+      "parameters": "Il2CppClass * klass, Il2CppClass * klassc",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_from_il2cpp_type",
+      "return_type": "Il2CppClass*",
+      "parameters": "const Il2CppType * type",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_from_name",
+      "return_type": "Il2CppClass*",
+      "parameters": "const Il2CppImage * image, const char* namespaze, const char *name",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_from_system_type",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppReflectionType * type",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_element_class",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_events",
+      "return_type": "const EventInfo*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_fields",
+      "return_type": "FieldInfo*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_nested_types",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_interfaces",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_properties",
+      "return_type": "const PropertyInfo*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_property_from_name",
+      "return_type": "const PropertyInfo*",
+      "parameters": "Il2CppClass * klass, const char *name",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_field_from_name",
+      "return_type": "FieldInfo*",
+      "parameters": "Il2CppClass * klass, const char *name",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_methods",
+      "return_type": "const MethodInfo*",
+      "parameters": "Il2CppClass * klass, void* *iter",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_method_from_name",
+      "return_type": "const MethodInfo*",
+      "parameters": "Il2CppClass * klass, const char* name, int argsCount",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_name",
+      "return_type": "const char*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_name_chunked",
+      "return_type": "void",
+      "parameters": "const Il2CppType * type, void(*chunkReportFunc)(void* data, void* userData), void* userData",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_namespace",
+      "return_type": "const char*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_parent",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_declaring_type",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_instance_size",
+      "return_type": "int32_t",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_num_fields",
+      "return_type": "size_t",
+      "parameters": "const Il2CppClass * enumKlass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_valuetype",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_value_size",
+      "return_type": "int32_t",
+      "parameters": "Il2CppClass * klass, uint32_t * align",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_blittable",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_flags",
+      "return_type": "int",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_abstract",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_interface",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_array_element_size",
+      "return_type": "int",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_from_type",
+      "return_type": "Il2CppClass*",
+      "parameters": "const Il2CppType * type",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_type",
+      "return_type": "const Il2CppType*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_type_token",
+      "return_type": "uint32_t",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_has_attribute",
+      "return_type": "bool",
+      "parameters": "Il2CppClass * klass, Il2CppClass * attr_class",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_has_references",
+      "return_type": "bool",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_is_enum",
+      "return_type": "bool",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_image",
+      "return_type": "const Il2CppImage*",
+      "parameters": "Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_assemblyname",
+      "return_type": "const char*",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_rank",
+      "return_type": "int",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_data_size",
+      "return_type": "uint32_t",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_static_field_data",
+      "return_type": "void*",
+      "parameters": "const Il2CppClass * klass",
+      "group": "class",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_stats_dump_to_file",
+      "return_type": "bool",
+      "parameters": "const char *path",
+      "group": "stats",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_stats_get_value",
+      "return_type": "uint64_t",
+      "parameters": "Il2CppStat stat",
+      "group": "stats",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_domain_get",
+      "return_type": "Il2CppDomain*",
+      "parameters": "",
+      "group": "domain",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_domain_assembly_open",
+      "return_type": "const Il2CppAssembly*",
+      "parameters": "Il2CppDomain * domain, const char* name",
+      "group": "domain",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_domain_get_assemblies",
+      "return_type": "const Il2CppAssembly**",
+      "parameters": "const Il2CppDomain * domain, size_t * size",
+      "group": "domain",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_raise_exception",
+      "return_type": "void",
+      "parameters": "Il2CppException*",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_exception_from_name_msg",
+      "return_type": "Il2CppException*",
+      "parameters": "const Il2CppImage * image, const char *name_space, const char *name, const char *msg",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_get_exception_argument_null",
+      "return_type": "Il2CppException*",
+      "parameters": "const char *arg",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_format_exception",
+      "return_type": "void",
+      "parameters": "const Il2CppException * ex, char* message, int message_size",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_format_stack_trace",
+      "return_type": "void",
+      "parameters": "const Il2CppException * ex, char* output, int output_size",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unhandled_exception",
+      "return_type": "void",
+      "parameters": "Il2CppException*",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_native_stack_trace",
+      "return_type": "void",
+      "parameters": "const Il2CppException * ex, uintptr_t** addresses, int* numFrames, char** imageUUID, char** imageName",
+      "group": "exception",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_flags",
+      "return_type": "int",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_from_reflection",
+      "return_type": "const FieldInfo*",
+      "parameters": "const Il2CppReflectionField * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_name",
+      "return_type": "const char*",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_parent",
+      "return_type": "Il2CppClass*",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_object",
+      "return_type": "Il2CppReflectionField*",
+      "parameters": "FieldInfo * field, Il2CppClass * refclass",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_offset",
+      "return_type": "size_t",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_type",
+      "return_type": "const Il2CppType*",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_value",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj, FieldInfo * field, void *value",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_get_value_object",
+      "return_type": "Il2CppObject*",
+      "parameters": "FieldInfo * field, Il2CppObject * obj",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_has_attribute",
+      "return_type": "bool",
+      "parameters": "FieldInfo * field, Il2CppClass * attr_class",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_set_value",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj, FieldInfo * field, void *value",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_static_get_value",
+      "return_type": "void",
+      "parameters": "FieldInfo * field, void *value",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_static_set_value",
+      "return_type": "void",
+      "parameters": "FieldInfo * field, void *value",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_set_value_object",
+      "return_type": "void",
+      "parameters": "Il2CppObject * instance, FieldInfo * field, Il2CppObject * value",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_field_is_literal",
+      "return_type": "bool",
+      "parameters": "FieldInfo * field",
+      "group": "field",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_collect",
+      "return_type": "void",
+      "parameters": "int maxGenerations",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_collect_a_little",
+      "return_type": "int32_t",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_start_incremental_collection",
+      "return_type": "void",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_disable",
+      "return_type": "void",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_enable",
+      "return_type": "void",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_is_disabled",
+      "return_type": "bool",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_set_mode",
+      "return_type": "void",
+      "parameters": "Il2CppGCMode mode",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_get_max_time_slice_ns",
+      "return_type": "int64_t",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_set_max_time_slice_ns",
+      "return_type": "void",
+      "parameters": "int64_t maxTimeSlice",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_is_incremental",
+      "return_type": "bool",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_get_used_size",
+      "return_type": "int64_t",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_get_heap_size",
+      "return_type": "int64_t",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_wbarrier_set_field",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj, void **targetAddress, void *object",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_has_strict_wbarriers",
+      "return_type": "bool",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_set_external_allocation_tracker",
+      "return_type": "void",
+      "parameters": "void(*func)(void*, size_t, int)",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_set_external_wbarrier_tracker",
+      "return_type": "void",
+      "parameters": "void(*func)(void**)",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_foreach_heap",
+      "return_type": "void",
+      "parameters": "void(*func)(void* data, void* userData), void* userData",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_stop_gc_world",
+      "return_type": "void",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_start_gc_world",
+      "return_type": "void",
+      "parameters": "",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_alloc_fixed",
+      "return_type": "void*",
+      "parameters": "size_t size",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gc_free_fixed",
+      "return_type": "void",
+      "parameters": "void* address",
+      "group": "gc",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gchandle_new",
+      "return_type": "Il2CppGCHandle",
+      "parameters": "Il2CppObject * obj, bool pinned",
+      "group": "gchandle",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gchandle_new_weakref",
+      "return_type": "Il2CppGCHandle",
+      "parameters": "Il2CppObject * obj, bool track_resurrection",
+      "group": "gchandle",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gchandle_get_target",
+      "return_type": "Il2CppObject*",
+      "parameters": "Il2CppGCHandle gchandle",
+      "group": "gchandle",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gchandle_free",
+      "return_type": "void",
+      "parameters": "Il2CppGCHandle gchandle",
+      "group": "gchandle",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_gchandle_foreach_get_target",
+      "return_type": "void",
+      "parameters": "void(*func)(void* data, void* userData), void* userData",
+      "group": "gchandle",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_header_size",
+      "return_type": "uint32_t",
+      "parameters": "",
+      "group": "vm runtime info",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_array_object_header_size",
+      "return_type": "uint32_t",
+      "parameters": "",
+      "group": "vm runtime info",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_offset_of_array_length_in_array_object_header",
+      "return_type": "uint32_t",
+      "parameters": "",
+      "group": "vm runtime info",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_offset_of_array_bounds_in_array_object_header",
+      "return_type": "uint32_t",
+      "parameters": "",
+      "group": "vm runtime info",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_allocation_granularity",
+      "return_type": "uint32_t",
+      "parameters": "",
+      "group": "vm runtime info",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_liveness_allocate_struct",
+      "return_type": "void*",
+      "parameters": "Il2CppClass * filter, int max_object_count, il2cpp_register_object_callback callback, void* userdata, il2cpp_liveness_reallocate_callback reallocate",
+      "group": "liveness",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_liveness_calculation_from_root",
+      "return_type": "void",
+      "parameters": "Il2CppObject * root, void* state",
+      "group": "liveness",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_liveness_calculation_from_statics",
+      "return_type": "void",
+      "parameters": "void* state",
+      "group": "liveness",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_liveness_finalize",
+      "return_type": "void",
+      "parameters": "void* state",
+      "group": "liveness",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_liveness_free_struct",
+      "return_type": "void",
+      "parameters": "void* state",
+      "group": "liveness",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_return_type",
+      "return_type": "const Il2CppType*",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_declaring_type",
+      "return_type": "Il2CppClass*",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_name",
+      "return_type": "const char*",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_from_reflection",
+      "return_type": "const MethodInfo*",
+      "parameters": "const Il2CppReflectionMethod * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_object",
+      "return_type": "Il2CppReflectionMethod*",
+      "parameters": "const MethodInfo * method, Il2CppClass * refclass",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_is_generic",
+      "return_type": "bool",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_is_inflated",
+      "return_type": "bool",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_is_instance",
+      "return_type": "bool",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_param_count",
+      "return_type": "uint32_t",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_param",
+      "return_type": "const Il2CppType*",
+      "parameters": "const MethodInfo * method, uint32_t index",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_class",
+      "return_type": "Il2CppClass*",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_has_attribute",
+      "return_type": "bool",
+      "parameters": "const MethodInfo * method, Il2CppClass * attr_class",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_flags",
+      "return_type": "uint32_t",
+      "parameters": "const MethodInfo * method, uint32_t * iflags",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_token",
+      "return_type": "uint32_t",
+      "parameters": "const MethodInfo * method",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_method_get_param_name",
+      "return_type": "const char*",
+      "parameters": "const MethodInfo * method, uint32_t index",
+      "group": "method",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_profiler_install",
+      "return_type": "void",
+      "parameters": "Il2CppProfiler * prof, Il2CppProfileFunc shutdown_callback",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_set_events",
+      "return_type": "void",
+      "parameters": "Il2CppProfileFlags events",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_install_enter_leave",
+      "return_type": "void",
+      "parameters": "Il2CppProfileMethodFunc enter, Il2CppProfileMethodFunc fleave",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_install_allocation",
+      "return_type": "void",
+      "parameters": "Il2CppProfileAllocFunc callback",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_install_gc",
+      "return_type": "void",
+      "parameters": "Il2CppProfileGCFunc callback, Il2CppProfileGCResizeFunc heap_resize_callback",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_install_fileio",
+      "return_type": "void",
+      "parameters": "Il2CppProfileFileIOFunc callback",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_profiler_install_thread",
+      "return_type": "void",
+      "parameters": "Il2CppProfileThreadFunc start, Il2CppProfileThreadFunc end",
+      "group": "profiler",
+      "guard": "IL2CPP_ENABLE_PROFILER"
+    },
+    {
+      "name": "il2cpp_property_get_flags",
+      "return_type": "uint32_t",
+      "parameters": "PropertyInfo * prop",
+      "group": "property",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_property_get_get_method",
+      "return_type": "const MethodInfo*",
+      "parameters": "PropertyInfo * prop",
+      "group": "property",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_property_get_set_method",
+      "return_type": "const MethodInfo*",
+      "parameters": "PropertyInfo * prop",
+      "group": "property",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_property_get_name",
+      "return_type": "const char*",
+      "parameters": "PropertyInfo * prop",
+      "group": "property",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_property_get_parent",
+      "return_type": "Il2CppClass*",
+      "parameters": "PropertyInfo * prop",
+      "group": "property",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_get_class",
+      "return_type": "Il2CppClass*",
+      "parameters": "Il2CppObject * obj",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_get_size",
+      "return_type": "uint32_t",
+      "parameters": "Il2CppObject * obj",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_get_virtual_method",
+      "return_type": "const MethodInfo*",
+      "parameters": "Il2CppObject * obj, const MethodInfo * method",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_new",
+      "return_type": "Il2CppObject*",
+      "parameters": "const Il2CppClass * klass",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_object_unbox",
+      "return_type": "void*",
+      "parameters": "Il2CppObject * obj",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_value_box",
+      "return_type": "Il2CppObject*",
+      "parameters": "Il2CppClass * klass, void* data",
+      "group": "object",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_enter",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_try_enter",
+      "return_type": "bool",
+      "parameters": "Il2CppObject * obj, uint32_t timeout",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_exit",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_pulse",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_pulse_all",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_wait",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_monitor_try_wait",
+      "return_type": "bool",
+      "parameters": "Il2CppObject * obj, uint32_t timeout",
+      "group": "monitor",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_invoke",
+      "return_type": "Il2CppObject*",
+      "parameters": "const MethodInfo * method, void *obj, void **params, Il2CppException **exc",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_invoke_convert_args",
+      "return_type": "Il2CppObject*",
+      "parameters": "const MethodInfo * method, void *obj, Il2CppObject **params, int paramCount, Il2CppException **exc",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_class_init",
+      "return_type": "void",
+      "parameters": "Il2CppClass * klass",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_object_init",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_object_init_exception",
+      "return_type": "void",
+      "parameters": "Il2CppObject * obj, Il2CppException** exc",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_runtime_unhandled_exception_policy_set",
+      "return_type": "void",
+      "parameters": "Il2CppRuntimeUnhandledExceptionPolicy value",
+      "group": "runtime",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_length",
+      "return_type": "int32_t",
+      "parameters": "Il2CppString * str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_chars",
+      "return_type": "Il2CppChar*",
+      "parameters": "Il2CppString * str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_new",
+      "return_type": "Il2CppString*",
+      "parameters": "const char* str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_new_len",
+      "return_type": "Il2CppString*",
+      "parameters": "const char* str, uint32_t length",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_new_utf16",
+      "return_type": "Il2CppString*",
+      "parameters": "const Il2CppChar * text, int32_t len",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_new_wrapper",
+      "return_type": "Il2CppString*",
+      "parameters": "const char* str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_intern",
+      "return_type": "Il2CppString*",
+      "parameters": "Il2CppString * str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_string_is_interned",
+      "return_type": "Il2CppString*",
+      "parameters": "Il2CppString * str",
+      "group": "string",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_current",
+      "return_type": "Il2CppThread*",
+      "parameters": "",
+      "group": "thread",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_attach",
+      "return_type": "Il2CppThread*",
+      "parameters": "Il2CppDomain * domain",
+      "group": "thread",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_detach",
+      "return_type": "void",
+      "parameters": "Il2CppThread * thread",
+      "group": "thread",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_is_vm_thread",
+      "return_type": "bool",
+      "parameters": "Il2CppThread * thread",
+      "group": "thread",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_current_thread_walk_frame_stack",
+      "return_type": "void",
+      "parameters": "Il2CppFrameWalkFunc func, void* user_data",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_walk_frame_stack",
+      "return_type": "void",
+      "parameters": "Il2CppThread * thread, Il2CppFrameWalkFunc func, void* user_data",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_current_thread_get_top_frame",
+      "return_type": "bool",
+      "parameters": "Il2CppStackFrameInfo * frame",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_get_top_frame",
+      "return_type": "bool",
+      "parameters": "Il2CppThread * thread, Il2CppStackFrameInfo * frame",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_current_thread_get_frame_at",
+      "return_type": "bool",
+      "parameters": "int32_t offset, Il2CppStackFrameInfo * frame",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_get_frame_at",
+      "return_type": "bool",
+      "parameters": "Il2CppThread * thread, int32_t offset, Il2CppStackFrameInfo * frame",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_current_thread_get_stack_depth",
+      "return_type": "int32_t",
+      "parameters": "",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_thread_get_stack_depth",
+      "return_type": "int32_t",
+      "parameters": "Il2CppThread * thread",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_override_stack_backtrace",
+      "return_type": "void",
+      "parameters": "Il2CppBacktraceFunc stackBacktraceFunc",
+      "group": "stacktrace",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_object",
+      "return_type": "Il2CppObject*",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_type",
+      "return_type": "int",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_class_or_element_class",
+      "return_type": "Il2CppClass*",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_name",
+      "return_type": "char*",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_is_byref",
+      "return_type": "bool",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_attrs",
+      "return_type": "uint32_t",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_equals",
+      "return_type": "bool",
+      "parameters": "const Il2CppType * type, const Il2CppType * otherType",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_assembly_qualified_name",
+      "return_type": "char*",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_get_reflection_name",
+      "return_type": "char*",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_is_static",
+      "return_type": "bool",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_type_is_pointer_type",
+      "return_type": "bool",
+      "parameters": "const Il2CppType * type",
+      "group": "type",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_assembly",
+      "return_type": "const Il2CppAssembly*",
+      "parameters": "const Il2CppImage * image",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_name",
+      "return_type": "const char*",
+      "parameters": "const Il2CppImage * image",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_filename",
+      "return_type": "const char*",
+      "parameters": "const Il2CppImage * image",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_entry_point",
+      "return_type": "const MethodInfo*",
+      "parameters": "const Il2CppImage * image",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_class_count",
+      "return_type": "size_t",
+      "parameters": "const Il2CppImage * image",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_image_get_class",
+      "return_type": "const Il2CppClass*",
+      "parameters": "const Il2CppImage * image, size_t index",
+      "group": "image",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_capture_memory_snapshot",
+      "return_type": "Il2CppManagedMemorySnapshot*",
+      "parameters": "",
+      "group": "Memory information",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_free_captured_memory_snapshot",
+      "return_type": "void",
+      "parameters": "Il2CppManagedMemorySnapshot * snapshot",
+      "group": "Memory information",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_find_plugin_callback",
+      "return_type": "void",
+      "parameters": "Il2CppSetFindPlugInCallback method",
+      "group": "Memory information",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_register_log_callback",
+      "return_type": "void",
+      "parameters": "Il2CppLogCallback method",
+      "group": "Logging",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_debugger_set_agent_options",
+      "return_type": "void",
+      "parameters": "const char* options",
+      "group": "Debugger",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_is_debugger_attached",
+      "return_type": "bool",
+      "parameters": "",
+      "group": "Debugger",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_register_debugger_agent_transport",
+      "return_type": "void",
+      "parameters": "Il2CppDebuggerTransport * debuggerTransport",
+      "group": "Debugger",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_debug_foreach_method",
+      "return_type": "void",
+      "parameters": "void(*func)(const MethodInfo* method, Il2CppMethodDebugInfo * methodDebugInfo, void* userData), void* userData",
+      "group": "Debug metadata",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_debug_get_method_info",
+      "return_type": "bool",
+      "parameters": "const MethodInfo * method, Il2CppMethodDebugInfo * methodDebugInfo",
+      "group": "Debug metadata",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_install_unitytls_interface",
+      "return_type": "void",
+      "parameters": "const void* unitytlsInterfaceStruct",
+      "group": "TLS module",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_from_class",
+      "return_type": "Il2CppCustomAttrInfo*",
+      "parameters": "Il2CppClass * klass",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_from_method",
+      "return_type": "Il2CppCustomAttrInfo*",
+      "parameters": "const MethodInfo * method",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_from_field",
+      "return_type": "Il2CppCustomAttrInfo*",
+      "parameters": "const FieldInfo * field",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_get_attr",
+      "return_type": "Il2CppObject*",
+      "parameters": "Il2CppCustomAttrInfo * ainfo, Il2CppClass * attr_klass",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_has_attr",
+      "return_type": "bool",
+      "parameters": "Il2CppCustomAttrInfo * ainfo, Il2CppClass * attr_klass",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_construct",
+      "return_type": "Il2CppArray*",
+      "parameters": "Il2CppCustomAttrInfo * cinfo",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_custom_attrs_free",
+      "return_type": "void",
+      "parameters": "Il2CppCustomAttrInfo * ainfo",
+      "group": "custom attributes",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_set_userdata",
+      "return_type": "void",
+      "parameters": "Il2CppClass * klass, void* userdata",
+      "group": "Il2CppClass user data for GetComponent optimization",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_class_get_userdata_offset",
+      "return_type": "int",
+      "parameters": "",
+      "group": "Il2CppClass user data for GetComponent optimization",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_set_default_thread_affinity",
+      "return_type": "void",
+      "parameters": "int64_t affinity_mask",
+      "group": "Il2CppClass user data for GetComponent optimization",
+      "guard": null
+    },
+    {
+      "name": "il2cpp_unity_set_android_network_up_state_func",
+      "return_type": "void",
+      "parameters": "Il2CppAndroidUpStateFunc func",
+      "group": "Android",
+      "guard": null
+    }
+  ]
+}
