@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.zip binary
+*.patch -text -whitespace
+# Exact upstream notice and asset bytes are covered by checksum manifests.
+/licenses/** -text -whitespace

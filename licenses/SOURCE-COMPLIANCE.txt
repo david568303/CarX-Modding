@@ -1,0 +1,77 @@
+CORRESPONDING SOURCE AND REPLACEMENT INSTRUCTIONS
+
+The loader ZIP includes:
+
+1. ../source.zip
+   Complete modified UnityDoorstop source, separate original compatibility
+   scripts and managed metadata bootstrap, and their build/install scripts.
+   See BUILD.txt in that ZIP. The same maintained source is in the tagged
+   project repository and linked UnityDoorstop fork revision.
+
+2. BepInEx-source-b782da4.zip
+   Unmodified BepInEx source commit:
+   b782da4ac54e1072d2857f4a2f77c80c3ef08005
+   Corresponds to BepInEx 6.0.0-be.791 shipped core/preloader/Unity DLLs.
+   LGPL-2.1-only; retain its LICENSE and original notices.
+
+3. Il2CppInterop-source-dbda1cb.zip
+   Unmodified Il2CppInterop source commit:
+   dbda1cb353b0f4253345dc45136d170b9e50a5a0
+   Corresponds to Il2CppInterop 1.5.3 shipped Common/Generator/Runtime/
+   HarmonySupport DLLs. LGPL-3.0-only; retain its LICENSE, which contains
+   LGPLv3 and the incorporated GPLv3 text, and original notices.
+
+source-manifest.json records source archive URLs, exact commit identifiers,
+SHA-256 hashes, and required build files. The upstream source archives
+contain their original build projects, scripts, declarations and reference
+assemblies; no CarX executable, copied game metadata or generated CarX
+interop is added to them. Independent dependencies retain their own terms.
+
+BUILDING REPLACEMENTS
+
+Use an existing Visual Studio C++ toolchain and .NET SDK. No compiler needs
+to be installed by this project. Extract the source ZIPs to separate build
+folders. Keep all upstream files, including NuGet configuration and reference
+assemblies. Restore the dependencies declared by the upstream projects from
+the upstream configured feeds. Read each archive's README and build projects
+for its supported SDK and configuration.
+
+BepInEx's Unity IL2CPP project is:
+  Runtimes/Unity/BepInEx.Unity.IL2CPP/BepInEx.Unity.IL2CPP.csproj
+Its repository root includes BepInEx.sln and the build/ Cake Frosting project.
+Build that project/solution with its existing configuration; upstream build
+scripts provide packaging and version generation. The IL2CPP output includes
+BepInEx.Core, Preloader.Core, Unity.Common and Unity.IL2CPP.
+
+Il2CppInterop's repository root includes Il2CppInterop.sln and projects for
+Common, Generator, Runtime and HarmonySupport. Build its solution or the
+required projects in Release with dotnet build. Version-stamping settings
+affect the informational version; ABI-compatible replacements need not be
+byte-for-byte identical to the original build.
+
+To rebuild this project's Doorstop and managed bootstrap use BUILD.txt in
+../source.zip. The Python scripts are shipped as editable source directly.
+
+INSTALLING REPLACEMENTS
+
+Close the game. Replace winhttp.dll with the rebuilt Doorstop DLL. Replace
+the corresponding BepInEx or Il2CppInterop DLLs under BepInEx/core with
+your compatible rebuilt versions. Replace the managed metadata bootstrap
+and Python scripts at the locations described in source.zip/BUILD.txt.
+Retain the installation layout and public interfaces required by the other
+components. Start the game normally to load your replacements.
+
+This project does not prohibit modification/replacement of the LGPL
+components or reverse engineering needed to debug those modifications.
+It does not impose a signature gate on replacement libraries. Third-party
+game terms and independent software licenses remain outside this grant.
+
+REDISTRIBUTION
+
+Retain the full licenses, attribution and source files supplied with the
+loader. If you redistribute a modified LGPL component, provide the complete
+corresponding modified source and build/install instructions with it under
+the applicable LGPL. Keep equivalent access to source beside binaries when
+distributing electronically. Commercial distribution is allowed by these
+licenses subject to their conditions; it does not grant trademark, patent,
+game-content or other unrelated rights.

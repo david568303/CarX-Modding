@@ -1,0 +1,10 @@
+.work/
+release/
+dist/
+**/__pycache__/
+**/bin/
+**/obj/
+*.pdb
+*.pyc
+.vs/
+.idea/
