@@ -73,6 +73,34 @@ GitHub's automatic source download does not expand submodules. The explicit comp
 source ZIP is therefore a required release asset. Required LGPL source is also inside
 the installable loader ZIP, so that it remains available when that ZIP is redistributed.
 
+## Upload to Nexus Mods
+
+Use `tools/package-nexus.py` to repack an audited loader ZIP without rebuilding or
+changing its DLL, EXE or PYD files. Set `$auditedBuildSha256` to the independently
+reviewed input ZIP hash, choose a date-based `$version`, and use a fresh output directory:
+
+```powershell
+& .\.work\vendor\python-embed\python.exe .\tools\package-nexus.py `
+  --runtime-zip .\release\BepInEx-Doorstop-NoPDB.zip `
+  --expected-sha256 $auditedBuildSha256 `
+  --version $version `
+  --output-dir .\release\nexus `
+  --source-url 'https://www.nexusmods.com/carxdriftracingonline2/mods/11?tab=files'
+```
+
+The packager verifies the immutable input and produces two separate downloads:
+
+- `CarX-Drift-Racing-Online-2-BepInEx-Runtime-<version>.zip`: installable main file.
+- `CarX-Drift-Racing-Online-2-BepInEx-Sources-<version>.zip`: matching corresponding
+  source and build instructions; upload beside the runtime as a miscellaneous file.
+
+Both retain licenses and notices and contain no nested archives. The runtime flattens
+Python's standard library and records the source companion's filename, hash and download
+page. Keep equivalent access to that exact source beside every redistributed runtime.
+Review `nexus-package-verification.json`, checksums and runtime checks before upload,
+then wait for Nexus's analysis. Report actual scan results; a completed scan or low
+detection count does not establish safety or confirm a false positive.
+
 ## License scope
 
 Original integration code, scripts, tests and documentation are MIT licensed.
