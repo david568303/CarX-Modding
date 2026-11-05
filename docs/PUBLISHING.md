@@ -77,7 +77,11 @@ the installable loader ZIP, so that it remains available when that ZIP is redist
 
 Use `tools/package-nexus.py` to repack an audited loader ZIP without rebuilding or
 changing its DLL, EXE or PYD files. Set `$auditedBuildSha256` to the independently
-reviewed input ZIP hash, choose a date-based `$version`, and use a fresh output directory:
+reviewed input ZIP hash, choose a date-based `$version`, and use a fresh output directory.
+Download the existing complete GitHub source asset shown below into `.work/downloads/`.
+The packager verifies its hash, revisions and source/build files against the compiled
+input. A later source revision or GitHub's automatic submodule-free source archive is
+not a substitute for matching corresponding source.
 
 ```powershell
 & .\.work\vendor\python-embed\python.exe .\tools\package-nexus.py `
@@ -85,18 +89,17 @@ reviewed input ZIP hash, choose a date-based `$version`, and use a fresh output 
   --expected-sha256 $auditedBuildSha256 `
   --version $version `
   --output-dir .\release\nexus `
-  --source-url 'https://www.nexusmods.com/carxdriftracingonline2/mods/11?tab=files'
+  --source-zip .\.work\downloads\CarX-Modding-Source-2026.10.28.1.zip `
+  --source-sha256 '8b1d49f2d756ef90cd791bc536b87d9209cf8c5519ef9babc270b42e7639bae0' `
+  --source-url 'https://github.com/david568303/CarX-Modding/releases/download/v2026.10.28.1/CarX-Modding-Source-2026.10.28.1.zip'
 ```
 
-The packager verifies the immutable input and produces two separate downloads:
-
-- `CarX-Drift-Racing-Online-2-BepInEx-Runtime-<version>.zip`: installable main file.
-- `CarX-Drift-Racing-Online-2-BepInEx-Sources-<version>.zip`: matching corresponding
-  source and build instructions; upload beside the runtime as a miscellaneous file.
-
-Both retain licenses and notices and contain no nested archives. The runtime flattens
-Python's standard library and records the source companion's filename, hash and download
-page. Keep equivalent access to that exact source beside every redistributed runtime.
+Upload only `CarX-Drift-Racing-Online-2-BepInEx-Runtime-<version>.zip` as the Nexus main
+file. The packager creates no source ZIP. It retains licenses/notices, flattens Python's
+standard library, and rejects nested archives. `SOURCE-DOWNLOADS.txt` records the existing
+GitHub source asset plus the exact upstream BepInEx/Il2CppInterop source URLs, commits
+and hashes from `licenses/manifest.json`. Preserve equivalent access to those sources
+when redistributing. This workflow does not create or change any GitHub release.
 Review `nexus-package-verification.json`, checksums and runtime checks before upload,
 then wait for Nexus's analysis. Report actual scan results; a completed scan or low
 detection count does not establish safety or confirm a false positive.
