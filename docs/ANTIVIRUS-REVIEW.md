@@ -1,7 +1,48 @@
-# Antivirus review — 5 November 2026
+# Antivirus review — updated 7 November 2026
 
 The installable CarX Drift Racing Online 2 package has a suspected false positive,
 not a vendor-confirmed false positive. A low detection count does not establish safety.
+
+## Follow-up: quarantine and fresh component scans
+
+Nexus runtime file **12**, version **2026.11.05.1**, is now quarantined. Its notice
+lists executable file types, scanner detections and nested archives as possible
+reasons; it does not identify the precise failing check. The verified ZIP contains
+no nested archives. Only the runtime is active on the Nexus Files page; no source
+download has been restored there.
+
+All three detected members were directly rescanned on **7 November 2026**:
+
+| Member | Completed result | Detecting engine and label |
+| --- | --- | --- |
+| [Modified winhttp.dll](https://www.virustotal.com/gui/file/0a7b1228b8122633aca507b2b7ead809ebf30bc9d7cc527479d389794eed24e6/detection) | 1/71 | Cynet: `Malicious (score: 100)` |
+| [Official Il2CppInterop.Common.dll](https://www.virustotal.com/gui/file/070e04f2276a8963a6d2a7eb52d43b644f3ae9aa3816c34541124d3862f1b37f/detection) | 1/70 | VBA32: `TScope.Trojan.MSIL` |
+| [Official Capstone 5.0.6 DLL](https://www.virustotal.com/gui/file/651096794b3c3c2a1df24345e22844a0311fca56a4f74ea1cfa29107983760e1/detection) | 1/70 | Cynet: `Malicious (score: 100)` |
+
+These are completed reports with populated results from the detecting engines.
+They confirm the detections persist; they do not confirm that the files are malicious
+or falsely detected. The outer ZIP's latest report is **0/41**, analysed 5 November
+at 10:19:36 Europe/Madrid, with **VBA32 and many other engines timing out**. That
+outer result does not establish that its earlier detection was corrected or that its
+members passed every scanner.
+
+The native DLL is our modified loader, so its detection must be investigated
+separately from the unchanged upstream libraries. The earlier inability to obtain a
+completed native report is resolved by this follow-up; it is not a clean native scan.
+
+The [official BepInEx build page](https://builds.bepinex.dev/projects/bepinex_be)
+now offers **793**, published after the initial audit. Its Common DLL is still
+exactly 41,472 bytes with SHA-256
+`070e04f2276a8963a6d2a7eb52d43b644f3ae9aa3816c34541124d3862f1b37f`.
+Updating the loader to 793 therefore does not change that detection input. Its new
+stack-trace logging and macOS ARM support are not an announced antivirus correction.
+
+The packaging change fixed the nested-archive incompatibility; it did not change
+the executable bytes or resolve their detections. No source-level defect has been
+established as the cause of either vendor's rule. Nexus requires a moderator review
+to release a quarantined upload; detecting vendors control their own verdicts.
+A [review request draft](publication/nexus-review-request.md) supplies the exact
+file reports, source revisions and build steps. It is a draft, not a submitted request.
 
 ## Exact samples
 
@@ -31,8 +72,8 @@ This establishes that the directly detected Common bytes are upstream bytes. It
 does not establish that Common explains every archive verdict, that our other
 components cannot receive detections, or that the vendor's verdict is erroneous.
 The current native `winhttp.dll` did not have a completed direct report during the
-review; its empty results panel must not be represented as a clean scan. An older
-native build had a separate Cynet detection, unrelated to the VBA32 family label.
+initial review; its empty results panel was not a clean scan. The follow-up above
+now confirms Cynet also detects the current native build, separately from VBA32.
 
 ## Source review
 
