@@ -1,5 +1,6 @@
 using System.Buffers.Binary;
 using System.Globalization;
+using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using Iced.Intel;
@@ -222,6 +223,7 @@ internal static class NativeMetadataDecoder
         private readonly Dictionary<int, FunctionRange> ranges = new();
         private readonly Dictionary<int, int> roots = new();
         private readonly Dictionary<int, List<FunctionRange>> groups = new();
+        private readonly Dictionary<int, BlobReader> unwindSections = new();
 
         internal Image(string path)
         {
@@ -265,12 +267,29 @@ internal static class NativeMetadataDecoder
             for (var depth = 0; depth <= 20; depth++)
             {
                 if (!ranges.TryGetValue(rva, out var range)) return rva;
-                var info = Read(range.UnwindRva, 4);
-                if ((info[0] & (4 << 3)) == 0) return rva;
-                var tail = 4 + (info[2] + 1) / 2 * 4;
-                rva = I32(Read(checked(range.UnwindRva + tail), 12), 0);
+                var info = ReadUnwind(range.UnwindRva, 4);
+                if ((info.ReadByte() & (4 << 3)) == 0) return rva;
+                info.ReadByte(); // Prologue length.
+                var tail = 4 + (info.ReadByte() + 1) / 2 * 4;
+                rva = ReadUnwind(checked(range.UnwindRva + tail), 12).ReadInt32();
             }
             throw new InvalidDataException("Native unwind chaining exceeds its depth bound.");
+        }
+
+        private BlobReader ReadUnwind(int rva, int length)
+        {
+            var index = reader.PEHeaders.GetContainingSectionIndex(rva);
+            if (index < 0) throw new InvalidDataException($"Unwind data at RVA 0x{rva:x} has no PE section.");
+            var start = reader.PEHeaders.SectionHeaders[index].VirtualAddress;
+            // An image can contain hundreds of thousands of unwind records.
+            // Keep views into PEReader-owned blocks rather than copying each tiny record.
+            if (!unwindSections.TryGetValue(index, out var section))
+                unwindSections.Add(index, section = reader.GetSectionData(start).GetReader());
+            var offset = rva - start;
+            if (offset < 0 || offset > section.Length - length)
+                throw new InvalidDataException($"Unwind data at RVA 0x{rva:x} is not backed by the file.");
+            section.Offset = offset;
+            return section;
         }
 
         internal int FunctionRoot(int rva) => roots.GetValueOrDefault(rva, rva);
