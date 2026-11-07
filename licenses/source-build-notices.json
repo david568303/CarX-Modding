@@ -18,6 +18,18 @@
       "sha256": "a6bcf1feb139a29d3ec21aafa6125f30f5c838e6ee07d2d141373d9cce1cb675",
       "component": "Microsoft Visual Studio Community 2026 terms",
       "sourceUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Community_ENU.docx"
+    },
+    {
+      "path": "licenses/Dobby-LLVM-exception-NOTICE.txt",
+      "sha256": "21bfefe67d8c6f27e75ddbb85ef544146efe5f50c05fe1a945fe897816218b81",
+      "component": "LLVM clear-cache source attribution and complete Apache 2.0 with LLVM exception terms in Dobby",
+      "sourceUrl": "https://raw.githubusercontent.com/llvm/llvm-project/1fdec59bffc11ae37eb51a1b9869f0696bfd5312/llvm/LICENSE.TXT"
+    },
+    {
+      "path": "licenses/Dobby-MSVC-2026-CRT-NOTICE.txt",
+      "sha256": "13797a774980c419e548bc15b80353b1a53cf6482d0b503722b390208c57434f",
+      "component": "Dobby addendum to the Microsoft Visual C++ static release runtime notice",
+      "sourceUrl": "https://visualstudio.microsoft.com/license-terms/"
     }
   ]
 }

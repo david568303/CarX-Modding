@@ -52,6 +52,12 @@ UnityDoorstop, unchanged Il2CppInterop.Common 1.5.3 source, and Capstone native 
 from commit `022575848782a4801fd150fdbc927effcbca0864` with the maintained correctness,
 version-resource and Windows protection integration. Python bindings stay at 5.0.6;
 the native 5.0.9 BSD/LLVM notices are byte-identical to the retained texts.
+The follow-up profile also rebuilds Dobby 1.0.5 from unchanged runtime source
+`888d971214900374edbca6206fad6ded8a2c1311`, retaining the official Windows
+feature profile with version resources and compiler protections. Its compiled
+LLVM clear-cache component's attribution and complete Apache 2.0 with LLVM
+exception terms are retained in
+[Dobby-LLVM-exception-NOTICE.txt](licenses/Dobby-LLVM-exception-NOTICE.txt).
 Exact revisions, modifications and build instructions are in
 [SOURCE-BUILDS.md](docs/SOURCE-BUILDS.md) and each runtime's SOURCE-DOWNLOADS.txt.
 
@@ -61,6 +67,8 @@ The [MSVC runtime notice](licenses/MSVC-2026-CRT-NOTICE.txt),
 [Visual Studio Community terms](licenses/MSVC-2026-Community-LICENSE.txt) are retained
 separately; MIT does not relicense Microsoft code. Their official provenance and
 checksums are recorded in [source-build-notices.json](licenses/source-build-notices.json).
+The additive [Dobby runtime notice](licenses/Dobby-MSVC-2026-CRT-NOTICE.txt)
+records its static runtime; the original Microsoft notices remain unchanged.
 
 Copyright holders include the BepInEx Team; knah and Il2CppInterop contributors;
 Washi; ds5678; Sam Byass; Ahmed Garhy; iced contributors; Jb Evain and Novell;

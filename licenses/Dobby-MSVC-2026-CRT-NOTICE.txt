@@ -1,0 +1,26 @@
+DOBBY ADDENDUM TO THE MICROSOFT VISUAL C++ COMPILED RUNTIME NOTICE
+
+Component: Microsoft Visual C++ release C/C++ runtime object code statically
+linked into the source-built Windows x64 Dobby dobby.dll by the installed Visual
+Studio Community 2026 MSVC toolchain using the standard release runtime (/MT).
+Copyright Microsoft Corporation. Microsoft retains its rights in that code.
+
+This notice adds Dobby to the components described by the accompanying
+MSVC-2026-CRT-NOTICE.txt. That existing notice and the complete accompanying
+MSVC-2026-Community-LICENSE.txt and MSVC-2026-Runtime-LICENSE.txt remain unchanged.
+The static runtime object code is inside the Dobby DLL; this component adds no
+separate Microsoft runtime DLL or redistributable installer to the package.
+
+Dobby source retains its Apache 2.0 terms. Its LLVM clear-cache component retains
+Apache-2.0 WITH LLVM-exception, documented in Dobby-LLVM-exception-NOTICE.txt.
+Microsoft runtime object code remains subject to Microsoft's applicable terms;
+neither Dobby's license nor the project's MIT license relicenses Microsoft code.
+The existing .NET/CoreCLR and Python runtime components retain their own notices.
+
+See the complete Microsoft license texts and the source/provenance information in
+MSVC-2026-CRT-NOTICE.txt. The official license catalog and distributable list are:
+  https://visualstudio.microsoft.com/license-terms/
+  https://aka.ms/vs/18/redistribution
+
+The original MSVC-2026-CRT-NOTICE.txt is preserved byte-for-byte with SHA-256:
+  69c87d0458a2a04d016a6190e93f1784d7e5c14c2168e7a130390dbefc0b50ce
