@@ -2,7 +2,7 @@
 
 The installable CarX Drift Racing Online 2 package has a suspected false positive,
 not a vendor-confirmed false positive. A low detection count does not establish safety.
-The current Nexus file **15** is **quarantined**. The exact runtime ZIP's latest
+The previous Nexus file **15** is **quarantined and archived**. That runtime ZIP's latest
 VirusTotal analysis is **1/62**, with Zillya reporting `Trojan.GenCBL.Win32.22575`
 on **7 November 2026 at 02:05:52 Europe/Madrid**. The bundled, unchanged official
 `dobby.dll` has the **same Zillya label** in a dated direct report and is a likely
@@ -56,9 +56,30 @@ The `2026.11.07.2` package profile replaces four DLLs and retains the other 248
 executable files. It adds the LLVM clear-cache attribution/exception license and
 a Dobby MSVC runtime notice while preserving every existing license. The build
 helper, source pins and reproducibility limits are recorded in
-[SOURCE-BUILDS.md](SOURCE-BUILDS.md). The final ZIP still requires its own analysis
-and Nexus publication; the file 15 quarantine described here remains the current
-published result until that occurs.
+[SOURCE-BUILDS.md](SOURCE-BUILDS.md).
+
+The final ZIP is `CarX-Drift-Racing-Online-2-BepInEx-Runtime-2026.11.07.2.zip`,
+48,124,156 bytes, SHA-256
+`6a308327941689f6899a73dc2592ffa8738298582e0a4ea445a723f9c671da59`.
+Its [completed archive report](https://www.virustotal.com/gui/file/6a308327941689f6899a73dc2592ffa8738298582e0a4ea445a723f9c671da59/detection)
+shows **0/60**, analysed **7 November 2026 at 03:16:26 Europe/Madrid**.
+Zillya, Cynet, Microsoft and VBA32 explicitly returned `Undetected`. ClamAV timed
+out; eight engines failed and six could not process the file type. Those are
+not clean verdicts. VirusTotal also warned that the multi-file ZIP exceeds its
+3 MB archive-inspection limit. This archive result and the four direct DLL
+reports describe different coverage; neither guarantees future vendor results.
+This exact ZIP was published as Nexus **file 16**, version **2026.11.07.2**, on
+**7 November 2026 at 03:20 Europe/Madrid**. File 15 was archived; only the built
+runtime is a Main/Primary download. The public description and changelog both
+read: "Rebuilt Dobby with Windows version metadata and security protections to
+address antivirus detections." Nexus's independent scan is still in progress
+at this observation; VirusTotal's report does not establish Nexus availability.
+
+An independent ZIP audit hashed all 927 files and 926 manifest records, verified
+the four exact DLLs and 248 unchanged executable files, all existing license bytes,
+the two added Dobby notices, wheel RECORD and six immutable source snapshots.
+Fresh extraction passed isolated bundled-Python imports and Capstone decoding
+from an unrelated directory. All 927 extracted file hashes remained unchanged.
 
 ### Previously reviewed three-DLL build
 
