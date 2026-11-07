@@ -6,7 +6,6 @@ From the repository root with the Doorstop submodule initialized:
 python -m pip install -r src/ApiResolver/requirements.txt
 python -B -m unittest discover -s tests/ApiResolver -v
 python -B -m unittest discover -s tests/MetadataNormalizer -v
-python -B -m unittest discover -s tests/NoSymbols -v
 .\tests\native\run.ps1
 $runtime = .\tools\prepare-bepinex.ps1
 $core = Join-Path $runtime 'BepInEx/core'

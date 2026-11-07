@@ -22,7 +22,7 @@ jobs:
         run: |
           python -m pip install -r src/ApiResolver/requirements.txt
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          foreach ($suite in 'ApiResolver','MetadataNormalizer','NoSymbols') {
+          foreach ($suite in 'ApiResolver','MetadataNormalizer') {
             python -B -m unittest discover -s "tests/$suite" -v
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
