@@ -1,14 +1,14 @@
 param(
-    [string]$ZipPath,
+    [Parameter(Mandatory)][string]$ZipPath,
     [string]$GameDirectory = $env:CARX_GAME_DIRECTORY,
+    [string]$RunBase = [IO.Path]::GetTempPath(),
+    [string]$ReuseGameCopyFrom,
     [ValidateRange(1,300)][int]$TimeoutSeconds = 300,
-    [switch]$ForbidSymbols,
     [switch]$StripDebugDirectories
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRoot = [IO.Path]::GetFullPath((Split-Path $PSScriptRoot -Parent))
-if (-not $ZipPath) { $ZipPath = Join-Path $projectRoot 'release/BepInEx-Doorstop-NoPDB.zip' }
 $zip = (Resolve-Path -LiteralPath $ZipPath).Path
 if (-not $GameDirectory) { throw 'Pass -GameDirectory or set CARX_GAME_DIRECTORY to the installed game folder.' }
 $gameRoot = (Resolve-Path -LiteralPath $GameDirectory).Path.TrimEnd('\')
@@ -25,12 +25,72 @@ function Assert-ChildPath([string]$Base, [string]$Candidate) {
 function Get-Sha256([string]$Path) {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
+function Assert-OrdinaryDirectory([string]$Path) {
+    $item = Get-Item -LiteralPath $Path -Force
+    if (-not $item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw "Expected an ordinary directory: $Path"
+    }
+}
+function Assert-OutsideGame([string]$Directory) {
+    if ($Directory.Equals($gameRoot, [StringComparison]::OrdinalIgnoreCase) -or
+        $Directory.StartsWith($gameRoot + '\', [StringComparison]::OrdinalIgnoreCase)) {
+        throw 'Test staging and evidence must be outside the original game installation.'
+    }
+    for ($parent = [IO.DirectoryInfo]::new($Directory); $null -ne $parent; $parent = $parent.Parent) {
+        Assert-OrdinaryDirectory $parent.FullName
+    }
+}
+function Copy-TestTree([string]$Source, [string]$Destination) {
+    Assert-OrdinaryDirectory $Source
+    if (Test-Path -LiteralPath $Destination) { throw "The staging destination already exists: $Destination" }
+    $null = New-Item -ItemType Directory -Path $Destination
+    foreach ($item in Get-ChildItem -LiteralPath $Source -Force) {
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw "Cannot stage a linked game dependency: $($item.FullName)"
+        }
+        $target = Assert-ChildPath $Destination (Join-Path $Destination $item.Name)
+        if ($item.PSIsContainer) {
+            Copy-TestTree $item.FullName $target
+        } elseif (-not ($StripDebugDirectories -and $item.Extension -ieq '.pdb')) {
+            [IO.File]::Copy($item.FullName, $target, $false)
+        }
+    }
+}
+function Assert-NoCarXProcess {
+    if (Get-Process -Name 'CarX Drift Racing Online 2' -ErrorAction SilentlyContinue) {
+        throw 'A CarX process is already running. The isolated game copy was not started.'
+    }
+}
+function Move-TestTrees([string]$From, [string]$To, [string[]]$Names) {
+    foreach ($name in $Names) {
+        $source = Assert-ChildPath $From (Join-Path $From $name)
+        $destination = Assert-ChildPath $To (Join-Path $To $name)
+        Assert-OrdinaryDirectory $source
+        if (Test-Path -LiteralPath $destination) { throw "The staging destination already exists: $destination" }
+        if (Get-ChildItem -LiteralPath $source -Force -Recurse -Attributes ReparsePoint) {
+            throw "The prior staged game tree contains a link: $source"
+        }
+    }
+    $moved = @()
+    try {
+        foreach ($name in $Names) {
+            [IO.Directory]::Move((Join-Path $From $name), (Join-Path $To $name))
+            $moved += $name
+        }
+    } catch {
+        foreach ($name in $moved) { [IO.Directory]::Move((Join-Path $To $name), (Join-Path $From $name)) }
+        throw
+    }
+}
 function Get-InputSnapshot {
     $snapshot = [ordered]@{}
     foreach ($relative in $inputFiles) {
         $path = Assert-ChildPath $gameRoot (Join-Path $gameRoot $relative)
-        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Required original game input is missing: $relative" }
-        $snapshot[$relative] = [ordered]@{sha256=(Get-Sha256 $path); length=(Get-Item -LiteralPath $path).Length}
+        $item = Get-Item -LiteralPath $path -Force
+        if ($item.PSIsContainer -or ($item.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw "Expected an ordinary game input file: $relative"
+        }
+        $snapshot[$relative] = [ordered]@{sha256=(Get-Sha256 $path); length=$item.Length}
     }
     return $snapshot
 }
@@ -90,6 +150,9 @@ function Clear-TestDebugDirectory([string]$Path) {
         }
         $stream.Position=$debugDirectory
         $stream.Write([byte[]]::new(8),0,8)
+        $stream.Flush()
+        $stream.Position=$debugDirectory
+        if ($reader.ReadUInt64() -ne 0) { throw 'The copied PE debug directory was not cleared.' }
         $reader.Dispose()
         return [ordered]@{file=[IO.Path]::GetFileName($Path); codeViewRecordsCleared=$clearedRecords; directoryCleared=$true}
     } finally { $stream.Dispose() }
@@ -107,13 +170,19 @@ if (Test-Path -LiteralPath $sidecar -PathType Leaf) {
         throw 'The release ZIP does not match its SHA-256 sidecar.'
     }
 }
+Assert-OrdinaryDirectory $gameRoot
+$workRoot = Assert-ChildPath $projectRoot (Join-Path $projectRoot '.work')
+$runBase = (Resolve-Path -LiteralPath $RunBase).Path
+Assert-OutsideGame $workRoot
+Assert-OutsideGame $runBase
+$evidenceBase = Join-Path $workRoot 'verification'
+if (-not (Test-Path -LiteralPath $evidenceBase)) { $null = New-Item -ItemType Directory -Path $evidenceBase }
+Assert-OrdinaryDirectory $evidenceBase
+$runId = [Guid]::NewGuid().ToString('N')
+$runRoot = Assert-ChildPath $runBase (Join-Path $runBase ('CarX-' + $runId.Substring(0,12)))
+$evidenceRoot = Assert-ChildPath $evidenceBase (Join-Path $evidenceBase ('release-test-' + $runId))
 $originalBefore = Get-InputSnapshot
-$runBase = Assert-ChildPath $projectRoot (Join-Path $projectRoot '.work/run')
-$runRoot = Assert-ChildPath $runBase (Join-Path $runBase ('release-test-' + [Guid]::NewGuid().ToString('N')))
-$evidenceRelative = if ($ForbidSymbols -or $StripDebugDirectories) { '.work/verification/release-no-pdb' } else { '.work/verification/release' }
-$evidenceRoot = Assert-ChildPath $projectRoot (Join-Path $projectRoot $evidenceRelative)
-if (Test-Path -LiteralPath $runRoot) { throw 'The fresh release-test directory already exists.' }
-New-Item -ItemType Directory -Path $runRoot,$evidenceRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $runRoot,$evidenceRoot | Out-Null
 
 $process = $null
 $exitCode = $null
@@ -121,16 +190,15 @@ $launchTime = $null
 $failure = $null
 $timedOut = $false
 $manifestVerified = $false
+$isolatedGameCopyVerified = $false
+$reusedGameCopyFrom = $null
 $originalUnchanged = $false
 $zipUnchanged = $false
 $zipHashAfter = $null
 $originalAfter = $null
 $proof = $null
 $interopCount = 0
-$symbolAuditVerified = $false
-$symbolAuditProcesses = @()
 $strippedDebugInfo = @()
-$priorVerifyExit = $env:BEPINEX_VERIFY_EXIT
 $playerLog = Join-Path $runRoot 'Player.release-test.log'
 $bepLog = Join-Path $runRoot 'BepInEx/LogOutput.log'
 $proofPath = Join-Path $runRoot 'BepInEx/verification-plugin.json'
@@ -145,16 +213,23 @@ try {
     try {
         foreach ($entry in $archive.Entries) {
             $name = $entry.FullName
-            if ($name.StartsWith('/') -or $name -match '(^|/)\.\.(/|$)|[:\\]' -or (($entry.ExternalAttributes -shr 16) -band 0xF000) -eq 0xA000) {
+            if ($name.StartsWith('/') -or $name -match '(^|/)\.\.?(/|$)|[:\\]|//|[ .](/|$)' -or
+                (($entry.ExternalAttributes -shr 16) -band 0xF000) -eq 0xA000) {
                 throw "Unsafe ZIP entry: $name"
             }
             $null = Assert-ChildPath $runRoot (Join-Path $runRoot $name.Replace('/','\'))
             if (-not $archiveNames.Add($name)) { throw "Duplicate ZIP entry: $name" }
+            if ($name -match '(?i)(^|/)(python|__pycache__)(/|$)' -or
+                $name -match '(?i)\.(py|pyw|pyc|pyo|pyd|whl|_pth)$' -or
+                $name -match '(?i)(^|/)python(?:[0-9]+|w)?\.(exe|dll|zip|cat)$') {
+                throw "The release ZIP contains a Python artifact: $name"
+            }
             if ($name.EndsWith('/')) { continue }
             if ($name -match '(?i)(^|/)(GameAssembly\.dll|UnityPlayer\.dll|CarX Drift Racing Online 2\.exe|global-metadata\.dat|doorstop_api\.ini|api-map\.json|verification-plugin\.json|Verification\.dll|CarX\.BepInEx\.Verification\.dll)$' -or
-                $name -match '(?i)(^|/)(interop|unity-libs|cache|downloads|__pycache__)(/|$)' -or $name -match '(?i)\.(pdb|pyc|log)$' -or
+                $name -match '(?i)(^|/)(interop|unity-libs|cache|downloads)(/|$)' -or
+                $name -match '(?i)\.(exe|bat|cmd|msi|zip|rar|7z|pdb|log)$' -or
                 $name -match '(?i)(^|/)(pdbsymbols\.[^/]+|msdia[^/]*)$') {
-                throw "The release ZIP contains game inputs, test output or a precomputed cache: $name"
+                throw "The release ZIP contains an unexpected runtime artifact: $name"
             }
             $null = $archiveFiles.Add($name)
         }
@@ -163,8 +238,9 @@ try {
     $manifestRelative = 'BepInEx/compatibility/package-manifest.json'
     $manifestPath = Join-Path $runRoot $manifestRelative
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
-    if ($manifest.format -ne 1 -or $manifest.initialApiMapIncluded -ne $false -or $manifest.testPluginsIncluded -ne $false) {
-        throw 'The package manifest does not describe a clean first-launch release.'
+    if ($manifest.format -ne 1 -or $manifest.initialApiMapIncluded -ne $false -or $manifest.testPluginsIncluded -ne $false -or
+        $manifest.profile -cne 'python-free-runtime') {
+        throw 'The package manifest does not describe a clean Python-free first-launch release.'
     }
     $manifestPaths = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
     foreach ($file in @($manifest.files)) {
@@ -195,35 +271,68 @@ try {
             $strippedDebugInfo += Clear-TestDebugDirectory (Assert-ChildPath $runRoot (Join-Path $runRoot $name))
         }
     }
-    foreach ($name in @('CarX Drift Racing Online 2_Data','D3D12')) {
-        $source = Assert-ChildPath $gameRoot (Join-Path $gameRoot $name)
-        $destination = Assert-ChildPath $runRoot (Join-Path $runRoot $name)
-        if (-not (Test-Path -LiteralPath $source -PathType Container)) { throw "The original game dependency directory is missing: $name" }
-        if (Test-Path -LiteralPath $destination) { throw "A dependency junction destination already exists: $name" }
-        $junction = New-Item -ItemType Junction -Path $destination -Target $source
-        if ($junction.LinkType -ne 'Junction' -or @($junction.Target)[0].TrimEnd('\') -ine $source.TrimEnd('\')) {
-            throw "The staged dependency junction has an unexpected target: $name"
+    $metadataInput = $inputFiles[-1]
+    $gameTrees = @('CarX Drift Racing Online 2_Data','D3D12')
+    if ($ReuseGameCopyFrom) {
+        # Transfer only the previously copied game assets to a fresh runtime.
+        # The prior run's package, plugin proof and caches stay in its directory.
+        Assert-NoCarXProcess
+        $priorResultPath = (Resolve-Path -LiteralPath $ReuseGameCopyFrom).Path
+        $priorEvidence = Split-Path $priorResultPath -Parent
+        $priorName = Split-Path $priorEvidence -Leaf
+        if ((Split-Path $priorEvidence -Parent) -ine $evidenceBase -or
+            (Split-Path $priorResultPath -Leaf) -ine 'result.json' -or $priorName -notmatch '^release-test-([a-f0-9]{32})$') {
+            throw 'ReuseGameCopyFrom must identify a prior result from this worktree.'
+        }
+        $priorRunRoot = Assert-ChildPath $runBase (Join-Path $runBase ('CarX-' + $Matches[1].Substring(0,12)))
+        Assert-OrdinaryDirectory $priorEvidence
+        Assert-OrdinaryDirectory $priorRunRoot
+        $prior = Get-Content -LiteralPath $priorResultPath -Raw | ConvertFrom-Json -AsHashtable
+        if ($prior.runRoot -ine $priorRunRoot -or $prior.isolatedGameCopyVerified -ne $true -or $prior.originalInputsUnchanged -ne $true -or
+            ($StripDebugDirectories -and $prior.copiedDebugDirectoriesStripped -ne $true)) {
+            throw 'Prior evidence does not establish an isolated game copy for this test.'
+        }
+        foreach ($name in $inputFiles) {
+            if ($prior.originalInputsBefore[$name].sha256 -cne $originalBefore[$name].sha256) {
+                throw "The installed game inputs have changed since the prior run: $name"
+            }
+        }
+        if ((Get-Sha256 (Join-Path $priorRunRoot $metadataInput)) -ne $originalBefore[$metadataInput].sha256) {
+            throw 'The prior staged metadata differs from the original input.'
+        }
+        Move-TestTrees $priorRunRoot $runRoot $gameTrees
+        $reusedGameCopyFrom = $priorRunRoot
+    } else {
+        foreach ($name in $gameTrees) {
+            $source = Assert-ChildPath $gameRoot (Join-Path $gameRoot $name)
+            $destination = Assert-ChildPath $runRoot (Join-Path $runRoot $name)
+            Copy-TestTree $source $destination
         }
     }
+    if ((Get-Sha256 (Join-Path $runRoot $metadataInput)) -ne $originalBefore[$metadataInput].sha256) {
+        throw 'The copied original metadata changed during staging.'
+    }
+    $isolatedGameCopyVerified = $true
     $pluginDirectory = Join-Path $runRoot 'BepInEx/plugins'
     New-Item -ItemType Directory -Path $pluginDirectory -Force | Out-Null
     Copy-Item -LiteralPath $pluginSource -Destination (Join-Path $pluginDirectory 'CarX.BepInEx.Verification.dll')
     foreach ($relative in @('doorstop_api.ini','BepInEx/cache','BepInEx/interop','BepInEx/unity-libs')) {
         if (Test-Path -LiteralPath (Join-Path $runRoot $relative)) { throw "The fresh first-launch test contains an unexpected cache: $relative" }
     }
-    if ($ForbidSymbols) {
-        $pythonRoot = Assert-ChildPath $runRoot (Join-Path $runRoot 'BepInEx/compatibility/python')
-        Copy-Item -LiteralPath (Join-Path $projectRoot 'tests/NoSymbols/sitecustomize.py') -Destination (Join-Path $pythonRoot 'sitecustomize.py')
-        $pythonPathFile = @(Get-ChildItem -LiteralPath $pythonRoot -Filter '*._pth' -File)
-        if ($pythonPathFile.Count -ne 1) { throw 'The embedded Python path configuration is ambiguous.' }
-        Add-Content -LiteralPath $pythonPathFile[0].FullName -Value "`nimport site" -Encoding ascii
-    }
-
-    $env:BEPINEX_VERIFY_EXIT = '1'
-    $launchTime = [DateTime]::UtcNow
     $executable = Join-Path $runRoot 'CarX Drift Racing Online 2.exe'
-    $arguments = '-batchmode -nographics -logFile "' + $playerLog + '"'
-    $process = Start-Process -FilePath $executable -WorkingDirectory $runRoot -ArgumentList $arguments -PassThru -WindowStyle Hidden
+    Assert-NoCarXProcess
+    $startInfo = [Diagnostics.ProcessStartInfo]::new($executable)
+    $startInfo.WorkingDirectory = $runRoot
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.WindowStyle = [Diagnostics.ProcessWindowStyle]::Hidden
+    foreach ($argument in @('-batchmode','-nographics','-logFile',$playerLog)) { $startInfo.ArgumentList.Add($argument) }
+    foreach ($name in @($startInfo.Environment.Keys)) {
+        if ($name -match '^(BEPINEX|DOORSTOP)_') { $null = $startInfo.Environment.Remove($name) }
+    }
+    $startInfo.Environment['BEPINEX_VERIFY_EXIT'] = '1'
+    $launchTime = [DateTime]::UtcNow
+    $process = [Diagnostics.Process]::Start($startInfo)
     Write-Host "Testing clean release in $runRoot"
     Write-Host "Game process $($process.Id); first launch must generate its own API, metadata and interop caches."
     $deadline = $launchTime.AddSeconds($TimeoutSeconds)
@@ -271,18 +380,9 @@ try {
     }
     $interopCount = @(Get-ChildItem -LiteralPath (Join-Path $runRoot 'BepInEx/interop') -Filter '*.dll' -File).Count
     if ($interopCount -eq 0) { throw 'BepInEx did not generate any interop assemblies.' }
-    if ($ForbidSymbols) {
-        $auditPath=Join-Path $runRoot 'BepInEx/cache/compatibility/no-symbols-audit.jsonl'
-        $audit=@(Get-Content -LiteralPath $auditPath | ForEach-Object { $_ | ConvertFrom-Json })
-        if (@($audit | Where-Object { $_.kind -eq 'blocked' }).Count) { throw 'Runtime code attempted to access debug symbols.' }
-        $symbolAuditProcesses=@($audit | Where-Object { $_.kind -eq 'installed' } | Select-Object -ExpandProperty pid -Unique)
-        if ($symbolAuditProcesses.Count -lt 2) { throw 'The symbol guard did not observe both API and metadata discovery processes.' }
-        $symbolAuditVerified=$true
-    }
 } catch {
     $failure = $_.Exception.Message
 } finally {
-    $env:BEPINEX_VERIFY_EXIT = $priorVerifyExit
     if ($process -and -not $process.HasExited) {
         # Never stop a pre-existing or independently launched process.
         $process.Kill()
@@ -304,7 +404,7 @@ try {
         @{Source=$bepLog; Name='BepInEx.log'},
         @{Source=$metadataLog; Name='metadata-bootstrap.log'},
         @{Source=$apiLog; Name='api-refresh.log'},
-        @{Source=(Join-Path $runRoot 'BepInEx/cache/compatibility/no-symbols-audit.jsonl'); Name='no-symbols-audit.jsonl'}
+        @{Source=$playerLog; Name='Player.log'}
     )) {
         $target = Assert-ChildPath $evidenceRoot (Join-Path $evidenceRoot $pair.Name)
         if (Test-Path -LiteralPath $pair.Source -PathType Leaf) { Copy-Item -LiteralPath $pair.Source -Destination $target -Force }
@@ -320,6 +420,9 @@ try {
         zipSha256After=$zipHashAfter
         zipUnchanged=$zipUnchanged
         packageManifestVerified=$manifestVerified
+        pythonFreePackageVerified=$manifestVerified
+        isolatedGameCopyVerified=$isolatedGameCopyVerified
+        reusedGameCopyFrom=$reusedGameCopyFrom
         runRoot=$runRoot
         processId=$(if ($process) {$process.Id} else {$null})
         exitCode=$exitCode
@@ -330,11 +433,8 @@ try {
         originalInputsAfter=$originalAfter
         generatedInteropAssemblyCount=$interopCount
         verificationPluginSha256=(Get-Sha256 $pluginSource)
-        debugSymbolAccessForbidden=[bool]$ForbidSymbols
-        copiedDebugDirectoriesStripped=[bool]$StripDebugDirectories
+        copiedDebugDirectoriesStripped=($strippedDebugInfo.Count -eq 2)
         copiedDebugRecords=@($strippedDebugInfo)
-        symbolAuditVerified=$symbolAuditVerified
-        symbolAuditProcessIds=@($symbolAuditProcesses)
         evidenceDirectory=$evidenceRoot
         error=$failure
     }
