@@ -28,13 +28,14 @@ unload/reload the candidate three times. URL parsing uses `example.invalid` as d
 and makes no network connection. Provide the previous working loader as `-Baseline`
 to retain a real before/after comparison.
 
-The enabled-loader host performs **57 checks** against a locally compiled synthetic
-`GameAssembly.dll`. It checks four own-process IAT hooks, canonical/aliased/ordinal
-export lookup, ordinary lookup passthrough, command-line preservation and private
-handle closing. It builds its API map from the fixture's actual PE identity and RVAs.
-It never invokes the initialization wrapper, game APIs or managed code; CoreCLR and
-the external helper must remain absent. Before unloading, it restores only its own
-four IAT slots, because production Doorstop does not undo hooks on unload.
+The enabled-loader host performs **59 checks** against a locally compiled synthetic
+`GameAssembly.dll`. It checks four own-process IAT hooks, the stock canonical
+initialization wrapper, ordinal and ordinary lookup passthrough, command-line
+preservation, and private handle closing. It exercises a valid x64 name pointer
+whose low 32 bits are zero. It also verifies that a forged API map
+using the fixture's real PE identity and RVAs cannot redirect an export.
+The host avoids calling the wrapper, game APIs, and managed code. Native discovery
+and CoreCLR stay inactive. Before unloading, it restores its four IAT slots.
 
 Results are `forwarding-results.json` and `enabled-results.json` in the corresponding
 build directories. Both runners verify original and staged DLL hashes remain equal.

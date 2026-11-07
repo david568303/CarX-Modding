@@ -5,3 +5,6 @@ AliasRuntimeInvoke @124
 AliasMethodGetName @125
 ExistingOrdinary @126
 ObservedCallCount @127
+il2cpp_init=CanonicalInit @130
+il2cpp_runtime_invoke=AliasRuntimeInvoke @131
+il2cpp_method_get_name=AliasMethodGetName @132

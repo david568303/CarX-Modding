@@ -1,6 +1,7 @@
 #include <windows.h>
 static LONG init_calls, invoke_calls, name_calls;
-int __cdecl AliasInit(const char *domain) { (void)domain; InterlockedIncrement(&init_calls); return 0; }
+int __cdecl CanonicalInit(const char *domain) { (void)domain; InterlockedIncrement(&init_calls); return 0; }
+int __cdecl AliasInit(const char *domain) { (void)domain; InterlockedIncrement(&init_calls); return 1; }
 void *__cdecl AliasRuntimeInvoke(void *method, void *object, void **parameters, void **exception) {
     (void)method; (void)object; (void)parameters; (void)exception;
     InterlockedIncrement(&invoke_calls); return NULL;

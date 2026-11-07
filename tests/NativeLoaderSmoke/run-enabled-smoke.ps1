@@ -32,8 +32,10 @@ try {
     $hostOutput=& (Join-Path $outputRoot 'enabled_hook_host.exe') $candidateCopy
     if($LASTEXITCODE -ne 0) { throw 'Enabled loader IAT smoke check failed.' }
     $result=($hostOutput -join "`n")|ConvertFrom-Json
-    if(-not $result.success -or $result.checksPassed -ne 57 -or $result.coreclrLoaded -or $result.helperEntered -or $result.runtimeCalls -ne 0) {
-        throw 'Enabled smoke host did not report the complete isolated 57-check result.'
+    if(-not $result.success -or $result.checksPassed -ne 59 -or
+       -not $result.canonicalInitWrapped -or -not $result.forgedMapIgnored -or
+       $result.coreclrLoaded -or $result.discoveryEntered -or $result.runtimeCalls -ne 0) {
+        throw 'Enabled smoke host did not report the complete isolated 59-check result.'
     }
     if((Get-FileHash -LiteralPath $candidatePath -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash -or
        (Get-FileHash -LiteralPath $candidateCopy -Algorithm SHA256).Hash.ToLowerInvariant() -ne $candidateHash) { throw 'Input or staged loader DLL changed during the test.' }
