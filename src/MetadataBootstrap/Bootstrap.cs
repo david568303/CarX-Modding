@@ -35,14 +35,14 @@ internal sealed record BootstrapContext(string GameDirectory, string CoreDirecto
             Path.Combine(gameDirectory, "UnityPlayer.dll"),
             Path.Combine(dataDirectory, "il2cpp_data", "Metadata", "global-metadata.dat"),
             Path.Combine(gameDirectory, "doorstop_api.ini"),
-            Path.Combine(coreDirectory, "scripts", "normalize_metadata.py"),
+            typeof(BootstrapContext).Assembly.Location,
             Path.Combine(bepinRoot, "cache", "metadata", "global-metadata.dat"),
             Path.Combine(bepinRoot, "config", "BepInEx.cfg"));
     }
 }
 
 internal sealed record InputFingerprint(int Format, string GameAssembly, string UnityPlayer,
-    string Metadata, string ApiMap, string Decoder);
+    string Metadata, string ApiMap, string Decoder, string Disassembler);
 internal sealed record CacheFingerprint(InputFingerprint Inputs, string Output);
 
 internal static class Bootstrap
@@ -62,19 +62,13 @@ internal static class Bootstrap
         return Convert.ToHexString(sha.ComputeHash(stream));
     }
 
-    internal static InputFingerprint Fingerprint(BootstrapContext context) => new(2,
+    internal static InputFingerprint Fingerprint(BootstrapContext context) => new(3,
         HashFile(context.GameAssemblyPath), HashFile(context.UnityPlayerPath),
-        HashFile(context.OriginalMetadataPath), HashFile(context.ApiMapPath), HashDecoderScripts(context.DecoderPath));
+        HashFile(context.OriginalMetadataPath),
+        File.Exists(context.ApiMapPath) ? HashFile(context.ApiMapPath) : "absent",
+        HashFile(context.DecoderPath), HashFile(DisassemblerPath(context)));
 
-    private static string HashDecoderScripts(string decoderPath)
-    {
-        // Include sibling modules used by the normalizer, so updating native
-        // inference code also invalidates an earlier normalized cache.
-        var entries = Directory.EnumerateFiles(Path.GetDirectoryName(decoderPath)!, "*.py")
-            .OrderBy(Path.GetFileName, StringComparer.Ordinal)
-            .Select(path => Path.GetFileName(path) + "\0" + HashFile(path));
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join("\n", entries))));
-    }
+    private static string DisassemblerPath(BootstrapContext context) => Path.Combine(context.CoreDirectory, "Iced.dll");
 
     internal static void Prepare(BootstrapContext context, string logPath,
         Action<BootstrapContext, string, string>? decode = null)
@@ -160,53 +154,10 @@ internal static class Bootstrap
 
     internal static void RunDecoder(BootstrapContext context, string temporaryOutput, string logPath)
     {
-        var configured = Environment.GetEnvironmentVariable("BEPINEX_METADATA_PYTHON");
-        var bundled = Path.Combine(context.BepInExRoot, "compatibility", "python", "python.exe");
-        var executable = !string.IsNullOrWhiteSpace(configured) ? configured
-            : File.Exists(bundled) ? bundled : "python.exe";
-        var candidates = new[] { executable };
-        var failures = new List<string>();
-        foreach (var candidate in candidates)
-        {
-            var start = new ProcessStartInfo(candidate)
-            {
-                UseShellExecute = false, CreateNoWindow = true,
-                RedirectStandardOutput = true, RedirectStandardError = true,
-                WorkingDirectory = context.GameDirectory,
-            };
-            start.ArgumentList.Add("-B");
-            start.ArgumentList.Add(context.DecoderPath);
-            start.ArgumentList.Add("--game"); start.ArgumentList.Add(context.GameAssemblyPath);
-            start.ArgumentList.Add("--metadata"); start.ArgumentList.Add(context.OriginalMetadataPath);
-            start.ArgumentList.Add("--api-map"); start.ArgumentList.Add(context.ApiMapPath);
-            start.ArgumentList.Add("--output"); start.ArgumentList.Add(temporaryOutput);
-            Process? process;
-            try { process = Process.Start(start); }
-            catch (System.ComponentModel.Win32Exception error)
-            {
-                failures.Add(candidate + ": " + error.Message);
-                continue;
-            }
-            if (process is null) throw new InvalidOperationException("The metadata decoder process did not start.");
-            using (process)
-            {
-                var stdout = process.StandardOutput.ReadToEndAsync();
-                var stderr = process.StandardError.ReadToEndAsync();
-                if (!process.WaitForExit(120 * 1000))
-                {
-                    try { process.Kill(entireProcessTree: true); } catch { }
-                    throw new TimeoutException("Metadata decoding exceeded two minutes.");
-                }
-                var output = stdout.GetAwaiter().GetResult();
-                var errors = stderr.GetAwaiter().GetResult();
-                if (output.Length > 0) Log(logPath, output.TrimEnd());
-                if (errors.Length > 0) Log(logPath, errors.TrimEnd());
-                if (process.ExitCode != 0)
-                    throw new InvalidDataException($"The metadata decoder exited with code {process.ExitCode}; see metadata-bootstrap.log.");
-                return;
-            }
-        }
-        throw new FileNotFoundException("Python 3 could not be started. BEPINEX_METADATA_PYTHON can select its executable. " + string.Join("; ", failures));
+        // Doorstop invokes this bootstrap before BepInEx installs its resolver.
+        // Load the same adjacent Iced assembly BepInEx will use later.
+        Assembly.LoadFrom(DisassemblerPath(context));
+        MetadataNormalizer.Decode(context, temporaryOutput, logPath);
     }
 
     internal static string UpdateMetadataConfig(string content, string value)

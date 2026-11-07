@@ -5,5 +5,9 @@
     <RootNamespace>BepInEx.MetadataBootstrap</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <BepInExCoreDirectory Condition="'$(BepInExCoreDirectory)' == ''">$(MSBuildThisFileDirectory)../../.work/vendor/BepInEx/BepInEx/core</BepInExCoreDirectory>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Iced"><HintPath>$(BepInExCoreDirectory)/Iced.dll</HintPath></Reference>
+  </ItemGroup>
 </Project>
