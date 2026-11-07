@@ -32,14 +32,6 @@ function Add-PackageFile([string]$Source, [string]$RelativePath) {
     Copy-Item -LiteralPath $Source -Destination $target -Force
 }
 
-function Add-PackageTree([string]$Source, [string]$RelativePath) {
-    foreach ($item in Get-ChildItem -LiteralPath $Source -Recurse -Force) {
-        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Unexpected link in runtime: $($item.FullName)" }
-        if ($item.PSIsContainer -or $item.Extension -eq '.pdb') { continue }
-        Add-PackageFile $item.FullName (Join-Path $RelativePath ([IO.Path]::GetRelativePath($Source, $item.FullName)))
-    }
-}
-
 function Assert-RuntimePath([string]$Name) {
     if ($Name -match '(^|/)\.\.?(/|$)|^/|[:\\]') { throw "Unsafe package path: $Name" }
     if ($Name -match '(?i)\.(exe|bat|cmd|msi|py|pyc|pyd|whl|zip|rar|7z|pdb|log)$' -or
@@ -65,9 +57,18 @@ New-Item -ItemType Directory -Path (Split-Path $zipPath -Parent) -Force | Out-Nu
 $stageRoot = Join-Path $projectRoot ('.work/package/stage-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
 
-$official = Join-Path $projectRoot '.work/vendor/BepInEx'
-Add-PackageTree (Join-Path $official 'BepInEx/core') 'BepInEx/core'
-Add-PackageTree (Join-Path $official 'dotnet') 'dotnet'
+$officialPath = & (Join-Path $PSScriptRoot 'prepare-bepinex.ps1') -ArchiveOnly
+$official = [IO.Compression.ZipFile]::OpenRead($officialPath)
+try {
+    foreach ($entry in $official.Entries) {
+        $name = $entry.FullName
+        if ($name -notmatch '^(BepInEx/core|dotnet)/' -or $name.EndsWith('/') -or $name.EndsWith('.pdb')) { continue }
+        Assert-RuntimePath $name
+        $target = Join-Path $stageRoot $name
+        New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
+        [IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $target)
+    }
+} finally { $official.Dispose() }
 Add-PackageFile $Il2CppCommonDll 'BepInEx/core/Il2CppInterop.Common.dll'
 Add-PackageFile $DobbyDll 'BepInEx/core/dobby.dll'
 Add-PackageFile $CapstoneDll 'BepInEx/compatibility/capstone.dll'
