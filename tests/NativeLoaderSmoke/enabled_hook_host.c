@@ -153,7 +153,7 @@ int wmain(int argc, wchar_t **argv) {
           "private event was actually closed");
     check(count_calls() == 0, "initialization wrapper and runtime APIs were never invoked");
     check(GetModuleHandleW(L"coreclr.dll") == NULL, "CoreCLR was never loaded");
-    check(GetFileAttributesW(L"BepInEx\\cache\\compatibility\\api-refresh.log") == INVALID_FILE_ATTRIBUTES,
+    check(GetFileAttributesW(L"BepInEx\\api-refresh.log") == INVALID_FILE_ATTRIBUTES,
           "native API discovery was never entered");
     /* Doorstop does not undo its IAT hooks on unload. Restore only our host's
      * four slots before FreeLibrary, then let normal process teardown proceed. */

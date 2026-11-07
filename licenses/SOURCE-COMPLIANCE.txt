@@ -20,7 +20,7 @@ INSTALLING REPLACEMENTS
 
 Close the game. Install compatible rebuilt versions at their runtime paths:
   winhttp.dll
-  BepInEx/compatibility/capstone.dll
+  BepInEx/core/CarX.Capstone.dll
   BepInEx/core/BepInEx.MetadataBootstrap.dll
   BepInEx/core/ (other BepInEx, Il2CppInterop and Dobby DLLs)
 Start the game normally to load your replacements.

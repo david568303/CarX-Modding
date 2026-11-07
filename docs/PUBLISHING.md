@@ -23,3 +23,6 @@ runtime ZIP as the main file on Nexus. Use the same runtime ZIP on both
 sites and verify the matching SHA-256. Check the new Nexus file's own
 scan badge and download availability before retiring superseded files.
 Keep quarantined files in the version history for staff review.
+
+Older release entries can be retired while retaining their Git tags. The
+tag and its pinned Doorstop submodule still provide the corresponding source.

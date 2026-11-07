@@ -35,7 +35,7 @@ function Add-PackageFile([string]$Source, [string]$RelativePath) {
 function Assert-RuntimePath([string]$Name) {
     if ($Name -match '(^|/)\.\.?(/|$)|^/|[:\\]') { throw "Unsafe package path: $Name" }
     if ($Name -match '(?i)\.(exe|bat|cmd|msi|py|pyc|pyd|whl|zip|rar|7z|pdb|log)$' -or
-        $Name -match '(?i)(^|/)(python|__pycache__|cache|interop|unity-libs|downloads)(/|$)' -or
+        $Name -match '(?i)(^|/)(compatibility|python|__pycache__|cache|interop|unity-libs|downloads)(/|$)' -or
         $Name -match '(?i)(^|/)(GameAssembly\.dll|UnityPlayer\.dll|global-metadata\.dat|doorstop_api\.ini|CarX\.BepInEx\.Verification\.dll|python[0-9]*\.dll|python[0-9]*\._pth)$') {
         throw "Unexpected file in the installable runtime: $Name"
     }
@@ -71,11 +71,11 @@ try {
 } finally { $official.Dispose() }
 Add-PackageFile $Il2CppCommonDll 'BepInEx/core/Il2CppInterop.Common.dll'
 Add-PackageFile $DobbyDll 'BepInEx/core/dobby.dll'
-Add-PackageFile $CapstoneDll 'BepInEx/compatibility/capstone.dll'
+Add-PackageFile $CapstoneDll 'BepInEx/core/CarX.Capstone.dll'
 Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/winhttp.dll') 'winhttp.dll'
 Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/.doorstop_version') '.doorstop_version'
 Add-PackageFile (Join-Path $projectRoot '.work/build/MetadataBootstrap/Release/net6.0/BepInEx.MetadataBootstrap.dll') 'BepInEx/core/BepInEx.MetadataBootstrap.dll'
-Add-PackageFile (Join-Path $doorstopRoot 'LICENSE') 'BepInEx/compatibility/licenses/UnityDoorstop-LGPL.txt'
+Add-PackageFile (Join-Path $doorstopRoot 'LICENSE') 'licenses/UnityDoorstop-fork-LGPL.txt'
 
 @"
 [General]
@@ -105,10 +105,9 @@ BepInEx generates interop assemblies. No Python installation is required.
 Install BepInEx 6 Unity IL2CPP plugins in BepInEx\plugins.
 Logs are in BepInEx\LogOutput.log and BepInEx\metadata-bootstrap.log.
 
-If upgrading from the Python-based release, close the game first. You can
-remove its old BepInEx\compatibility\python folder and the old Python
-helpers under BepInEx\compatibility\tools and BepInEx\core\scripts.
-Keep your plugins and configuration.
+If upgrading from an older release, close the game first. You can remove the
+old BepInEx\compatibility folder and the old metadata scripts under
+BepInEx\core\scripts. Keep your plugins and configuration.
 
 Source and build instructions: https://github.com/david568303/CarX-Modding
 Exact corresponding sources are in SOURCE-DOWNLOADS.txt.
@@ -149,7 +148,7 @@ $sourceText += @(
 )
 $sourceText | Set-Content -LiteralPath (Join-Path $stageRoot 'SOURCE-DOWNLOADS.txt') -Encoding ascii
 
-$manifestName = 'BepInEx/compatibility/package-manifest.json'
+$manifestName = 'BepInEx/core/package-manifest.json'
 $files = @(foreach ($item in Get-ChildItem -LiteralPath $stageRoot -File -Recurse -Force | Sort-Object FullName) {
     $name = [IO.Path]::GetRelativePath($stageRoot, $item.FullName).Replace('\','/')
     Assert-RuntimePath $name
@@ -157,7 +156,7 @@ $files = @(foreach ($item in Get-ChildItem -LiteralPath $stageRoot -File -Recurs
 })
 $required = @(
     'LICENSE', 'THIRD-PARTY-NOTICES.md', 'SOURCE-DOWNLOADS.txt', 'doorstop_config.ini', 'winhttp.dll',
-    'BepInEx/compatibility/capstone.dll', 'BepInEx/core/BepInEx.MetadataBootstrap.dll',
+    'BepInEx/core/CarX.Capstone.dll', 'BepInEx/core/BepInEx.MetadataBootstrap.dll',
     'BepInEx/core/BepInEx.Unity.IL2CPP.dll', 'BepInEx/core/Iced.dll', 'dotnet/coreclr.dll'
 )
 foreach ($name in $required) {

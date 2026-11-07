@@ -8,7 +8,8 @@ installed Visual Studio x64 C++ tools, CMake and a .NET SDK that targets .NET 6.
 
 1. Doorstop discovers the aliases used by Unity's loader and checks each one
    against the loaded GameAssembly. It uses the validated map in memory and
-   publishes a copy for the metadata bootstrap.
+   publishes a copy for the metadata bootstrap. Its decoder is
+   `BepInEx/core/CarX.Capstone.dll`.
 2. After Unity's native initialization, the managed bootstrap checks the
    installed metadata against the paired binaries. It validates the decoded
    tables and checks the input hashes again before publishing the cache.

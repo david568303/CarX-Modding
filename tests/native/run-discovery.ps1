@@ -13,11 +13,11 @@ $reference = (Resolve-Path -LiteralPath $ReferenceMap).Path
 $decoderPath = (Resolve-Path -LiteralPath $CapstoneDll).Path
 $includePath = (Resolve-Path -LiteralPath $CapstoneIncludeDir).Path
 $out = Join-Path $root ('.work/tests/native-discovery/' + [Guid]::NewGuid().ToString('N'))
-$compatibility = Join-Path $out 'BepInEx/compatibility'
-New-Item -ItemType Directory -Path $compatibility -Force | Out-Null
+$core = Join-Path $out 'BepInEx/core'
+New-Item -ItemType Directory -Path $core -Force | Out-Null
 Copy-Item -LiteralPath $unityPath -Destination (Join-Path $out 'UnityPlayer.dll')
 Copy-Item -LiteralPath $gamePath -Destination (Join-Path $out 'GameAssembly.dll')
-Copy-Item -LiteralPath $decoderPath -Destination (Join-Path $compatibility 'capstone.dll')
+Copy-Item -LiteralPath $decoderPath -Destination (Join-Path $core 'CarX.Capstone.dll')
 
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 $vsRoot = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
@@ -36,7 +36,7 @@ try {
     function Invoke-DiscoveryTest([string]$Mode, [string]$ExpectedLog) {
         & .\native_discovery_tests.exe $Mode $reference
         if ($LASTEXITCODE -ne 0) { throw "Native discovery test failed: $Mode" }
-        if ($ExpectedLog -and (Get-Content -Raw -LiteralPath 'BepInEx/cache/compatibility/api-refresh.log') -notmatch $ExpectedLog) {
+        if ($ExpectedLog -and (Get-Content -Raw -LiteralPath 'BepInEx/api-refresh.log') -notmatch $ExpectedLog) {
             throw "Native discovery log did not match the expected outcome: $Mode"
         }
     }
@@ -53,11 +53,11 @@ try {
     Set-Content -LiteralPath 'doorstop_config.ini' -Value '[Compatibility]', 'auto_refresh=false' -Encoding ascii
     Invoke-DiscoveryTest disabled ''
     Remove-Item -LiteralPath 'doorstop_config.ini'
-    Move-Item -LiteralPath 'BepInEx/compatibility/capstone.dll' -Destination 'BepInEx/compatibility/capstone.disabled'
+    Move-Item -LiteralPath 'BepInEx/core/CarX.Capstone.dll' -Destination 'BepInEx/core/CarX.Capstone.disabled'
     try {
         Invoke-DiscoveryTest missing-decoder 'could not load the packaged x64 Capstone 5 decoder'
     } finally {
-        Move-Item -LiteralPath 'BepInEx/compatibility/capstone.disabled' -Destination 'BepInEx/compatibility/capstone.dll'
+        Move-Item -LiteralPath 'BepInEx/core/CarX.Capstone.disabled' -Destination 'BepInEx/core/CarX.Capstone.dll'
     }
 } finally { Pop-Location }
 Write-Host "Native discovery test scratch directory $out"

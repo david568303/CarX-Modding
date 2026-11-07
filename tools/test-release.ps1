@@ -203,7 +203,7 @@ $playerLog = Join-Path $runRoot 'Player.release-test.log'
 $bepLog = Join-Path $runRoot 'BepInEx/LogOutput.log'
 $proofPath = Join-Path $runRoot 'BepInEx/verification-plugin.json'
 $metadataLog = Join-Path $runRoot 'BepInEx/metadata-bootstrap.log'
-$apiLog = Join-Path $runRoot 'BepInEx/cache/compatibility/api-refresh.log'
+$apiLog = Join-Path $runRoot 'BepInEx/api-refresh.log'
 try {
     # Validate every archive path before extraction, including duplicate names.
     Add-Type -AssemblyName System.IO.Compression
@@ -219,6 +219,9 @@ try {
             }
             $null = Assert-ChildPath $runRoot (Join-Path $runRoot $name.Replace('/','\'))
             if (-not $archiveNames.Add($name)) { throw "Duplicate ZIP entry: $name" }
+            if ($name -match '(?i)^BepInEx/compatibility(/|$)') {
+                throw "The release ZIP contains the legacy compatibility directory: $name"
+            }
             if ($name -match '(?i)(^|/)(python|__pycache__)(/|$)' -or
                 $name -match '(?i)\.(py|pyw|pyc|pyo|pyd|whl|_pth)$' -or
                 $name -match '(?i)(^|/)python(?:[0-9]+|w)?\.(exe|dll|zip|cat)$') {
@@ -235,7 +238,7 @@ try {
         }
     } finally { $archive.Dispose() }
     Expand-Archive -LiteralPath $zip -DestinationPath $runRoot
-    $manifestRelative = 'BepInEx/compatibility/package-manifest.json'
+    $manifestRelative = 'BepInEx/core/package-manifest.json'
     $manifestPath = Join-Path $runRoot $manifestRelative
     $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
     if ($manifest.format -ne 1 -or $manifest.initialApiMapIncluded -ne $false -or $manifest.testPluginsIncluded -ne $false -or
@@ -374,9 +377,12 @@ try {
     if ($logText -notmatch 'Chainloader startup complete' -or $logText -notmatch 'CARX_BEPINEX_VERIFICATION_PLUGIN_LOADED') {
         throw 'The log does not prove both verification-plugin loading and completed BepInEx chainloader startup.'
     }
-    foreach ($relative in @('doorstop_api.ini','BepInEx/cache/metadata/global-metadata.dat','BepInEx/cache/metadata/global-metadata.dat.fingerprint.json','BepInEx/cache/compatibility/api-refresh.log')) {
+    foreach ($relative in @('doorstop_api.ini','BepInEx/cache/metadata/global-metadata.dat','BepInEx/cache/metadata/global-metadata.dat.fingerprint.json','BepInEx/api-refresh.log')) {
         $generated = Get-Item -LiteralPath (Join-Path $runRoot $relative)
         if ($generated.LastWriteTimeUtc -lt $launchTime) { throw "Generated first-launch output is stale: $relative" }
+    }
+    foreach ($relative in @('BepInEx/compatibility','BepInEx/cache/compatibility')) {
+        if (Test-Path -LiteralPath (Join-Path $runRoot $relative)) { throw "The runtime recreated a legacy compatibility directory: $relative" }
     }
     $interopCount = @(Get-ChildItem -LiteralPath (Join-Path $runRoot 'BepInEx/interop') -Filter '*.dll' -File).Count
     if ($interopCount -eq 0) { throw 'BepInEx did not generate any interop assemblies.' }
