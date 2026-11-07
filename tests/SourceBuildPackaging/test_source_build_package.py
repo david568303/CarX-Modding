@@ -32,8 +32,8 @@ class SourceBuildPackage(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name)
         self.base = {"winhttp.dll": b"old native", "BepInEx/core/Il2CppInterop.Common.dll": b"old Common",
-                     pack.CAPSTONE_DLL: b"old capstone"}
-        for i in range(249):
+                     pack.CAPSTONE_DLL: b"old capstone", pack.DOBBY_DLL: b"old Dobby"}
+        for i in range(248):
             self.base[f"BepInEx/core/unchanged-{i}.dll"] = f"unchanged binary {i}".encode()
         self.base.update({"LICENSE": b"Project copyright and MIT terms\n", "licenses/upstream.txt": b"Upstream copyright and full LGPL terms\n",
             "README.txt": b"old README", "SOURCE-DOWNLOADS.txt": b"old source links",
@@ -42,6 +42,7 @@ class SourceBuildPackage(unittest.TestCase):
                 b"| Il2CppInterop | 1.5.3+dbda1cb | LGPL |\n"
                 b"| Capstone native disassembler and Python bindings | 5.0.6 | BSD |\n"
                 b"| LLVM-derived portions in Capstone | 5.0.6 | LLVM |\n"
+                b"| Dobby (BepInEx fork) | 1.0.5 / 888d971 | Apache |\n"
                 b"The machine-readable [license manifest] old provenance\n"
                 b"Copyright holders include ORIGINAL HOLDERS.\n"
                 b"This Nexus runtime build links existing corresponding source downloads on GitHub.\nold source links\n"
@@ -62,13 +63,24 @@ class SourceBuildPackage(unittest.TestCase):
         self.profile_patch = mock.patch.dict(pack.CAPSTONE_PROFILE, {"dllSha256": self.expected[pack.CAPSTONE_DLL]})
         self.profile_patch.start()
         self.addCleanup(self.profile_patch.stop)
-        self.extra = {path: ("MSVC notice " + path + "\n").encode() for path in pack.NOTICE_NAMES}
-        self.notice_records = [{"path": path, "sha256": pack.digest(data), "component": "MSVC fixture",
-                                "sourceUrl": "https://visualstudio.microsoft.com/license-terms/"} for path, data in sorted(self.extra.items())]
+        self.dobby_profile_patch = mock.patch.dict(pack.DOBBY_PROFILE, {
+            "finalTestedProfile": True, "dllSha256": self.expected[pack.DOBBY_DLL]})
+        self.dobby_profile_patch.start()
+        self.addCleanup(self.dobby_profile_patch.stop)
+        self.extra = {path: ("Source-build notice " + path + "\n").encode() for path in pack.NOTICE_NAMES}
+        fixture_notices = {path: {"sha256": pack.digest(self.extra[path]), "sourceUrl": record["sourceUrl"]}
+                           for path, record in pack.NOTICE_PROFILE.items()}
+        self.notice_profile_patch = mock.patch.object(pack, "NOTICE_PROFILE", fixture_notices)
+        self.notice_profile_patch.start()
+        self.addCleanup(self.notice_profile_patch.stop)
+        self.notice_records = [{"path": path, "sha256": pack.digest(data), "component": "Source-build fixture",
+                                "sourceUrl": pack.NOTICE_PROFILE[path]["sourceUrl"]} for path, data in sorted(self.extra.items())]
         self.sources = pack.make_sources("a" * 40)
         self.args = argparse.Namespace(base_zip=self.root / "base.zip", winhttp=self.root / "winhttp.dll",
-            common=self.root / "Common.dll", capstone=self.root / "capstone.dll", output_dir=self.root / "output", version="2026.11.07.1")
-        for path, local in (("winhttp.dll", self.args.winhttp), ("BepInEx/core/Il2CppInterop.Common.dll", self.args.common), (pack.CAPSTONE_DLL, self.args.capstone)):
+            common=self.root / "Common.dll", capstone=self.root / "capstone.dll", dobby=self.root / "dobby.dll",
+            output_dir=self.root / "output", version="2026.11.07.2")
+        for path, local in (("winhttp.dll", self.args.winhttp), ("BepInEx/core/Il2CppInterop.Common.dll", self.args.common),
+                            (pack.CAPSTONE_DLL, self.args.capstone), (pack.DOBBY_DLL, self.args.dobby)):
             local.write_bytes(self.replacements[path])
         self.base_hash_patch = mock.patch.object(pack, "BASE_SHA256", "")
         self.base_hash_patch.start()
@@ -93,18 +105,21 @@ class SourceBuildPackage(unittest.TestCase):
             self.sources if sources is None else sources, self.extra if extra is None else extra,
             self.notice_records if notices is None else notices, self.args.version)
 
-    def test_only_three_binary_changes_and_all_other_bytes_preserved(self):
+    def test_only_four_binary_changes_and_all_other_bytes_preserved(self):
         files, report = self.repack()
         self.assertEqual(set(files) - set(self.base), pack.NOTICE_NAMES)
         changed_binaries = {n for n in self.base if Path(n).suffix in pack.zipio.BINARIES and self.base[n] != files[n]}
         self.assertEqual(changed_binaries, set(self.expected))
-        self.assertEqual(report["unchangedExecutableFiles"], 249)
+        self.assertEqual(report["unchangedExecutableFiles"], 248)
+        self.assertEqual(report["replacedExecutableFiles"], 4)
         for name, data in self.base.items():
             if name not in pack.TEXT_CHANGES | set(self.expected):
                 self.assertEqual(files[name], data, name)
         self.assertEqual(files["LICENSE"], self.base["LICENSE"])
         self.assertEqual(files["licenses/upstream.txt"], self.base["licenses/upstream.txt"])
         self.assertEqual(files["licenses/manifest.json"], self.base["licenses/manifest.json"])
+        for path, notice in self.extra.items():
+            self.assertEqual(files[path], notice, path)
         self.assertIn(b"Copyright holders include ORIGINAL HOLDERS.", files["THIRD-PARTY-NOTICES.md"])
         self.assertIn(b"ORIGINAL REPLACEMENT RIGHTS.", files["THIRD-PARTY-NOTICES.md"])
 
@@ -164,7 +179,7 @@ class SourceBuildPackage(unittest.TestCase):
     def test_unexpected_replacement_path_rejected(self):
         values = dict(self.replacements)
         values["BepInEx/core/other.dll"] = b"unapproved"
-        with self.assertRaisesRegex(ValueError, "three approved replacement paths"):
+        with self.assertRaisesRegex(ValueError, "four approved replacement paths"):
             self.repack(replacements=values)
 
     def test_unexpected_replacement_bytes_rejected(self):
@@ -173,10 +188,17 @@ class SourceBuildPackage(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Unexpected replacement hash"):
             self.repack(replacements=values)
 
+    def test_dobby_bytes_cannot_be_substituted_or_omitted(self):
+        for values in ({p: d for p, d in self.replacements.items() if p != pack.DOBBY_DLL},
+                       {**self.replacements, pack.DOBBY_DLL: self.replacements[pack.DOBBY_DLL] + b"changed Dobby"}):
+            with self.subTest(paths=tuple(values)):
+                with self.assertRaises(ValueError):
+                    self.repack(replacements=values)
+
     def test_missing_replacement_rejected(self):
         values = dict(self.replacements)
         del values[pack.CAPSTONE_DLL]
-        with self.assertRaisesRegex(ValueError, "three approved replacement paths"):
+        with self.assertRaisesRegex(ValueError, "four approved replacement paths"):
             self.repack(replacements=values)
 
     def test_wheel_record_must_match_original_dll(self):
@@ -230,6 +252,14 @@ class SourceBuildPackage(unittest.TestCase):
                 pack.collect_sources(self.root)
             git.assert_not_called()
 
+    def test_unapproved_dobby_profile_cannot_collect_sources_or_package(self):
+        with mock.patch.dict(pack.DOBBY_PROFILE, {"finalTestedProfile": False}), mock.patch.object(pack, "git") as git:
+            with self.assertRaisesRegex(ValueError, "final tested Dobby"):
+                pack.collect_sources(self.root)
+            git.assert_not_called()
+            with self.assertRaisesRegex(ValueError, "final tested Dobby"):
+                self.repack()
+
     def write_notice_spec(self, records):
         (self.root / "licenses").mkdir(exist_ok=True)
         for name, data in self.extra.items():
@@ -247,17 +277,69 @@ class SourceBuildPackage(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "notice checksum mismatch"):
             pack.load_notices(self.root)
         self.write_notice_spec([])
-        with self.assertRaisesRegex(ValueError, "three approved MSVC"):
+        with self.assertRaisesRegex(ValueError, "five approved source-build"):
             pack.load_notices(self.root)
 
-    def test_notice_source_url_must_identify_microsoft(self):
-        for url in ("http://visualstudio.microsoft.com/license", "https://visualstudio.microsoft.com.evil.example/license"):
+    def test_notice_url_must_match_the_specific_official_source(self):
+        for url in ("http://visualstudio.microsoft.com/license", "https://visualstudio.microsoft.com.evil.example/license",
+                    "https://visualstudio.microsoft.com/license-terms/"):
             with self.subTest(url=url):
                 records = json.loads(json.dumps(self.notice_records))
-                records[0]["sourceUrl"] = url
+                next(r for r in records if r["path"] == "licenses/Dobby-LLVM-exception-NOTICE.txt")["sourceUrl"] = url
                 self.write_notice_spec(records)
-                with self.assertRaisesRegex(ValueError, "official Microsoft"):
+                with self.assertRaisesRegex(ValueError, "approved official source"):
                     pack.load_notices(self.root)
+
+    def test_matching_tampered_notice_and_manifest_cannot_replace_pinned_text(self):
+        path = "licenses/Dobby-LLVM-exception-NOTICE.txt"
+        changed = dict(self.extra)
+        changed[path] += b"changed exception terms"
+        records = json.loads(json.dumps(self.notice_records))
+        next(r for r in records if r["path"] == path)["sha256"] = pack.digest(changed[path])
+        with self.assertRaisesRegex(ValueError, "notice checksum mismatch"):
+            self.repack(extra=changed, notices=records)
+        self.write_notice_spec(records)
+        (self.root / path).write_bytes(changed[path])
+        with self.assertRaisesRegex(ValueError, "notice checksum mismatch"):
+            pack.load_notices(self.root)
+
+    def test_dobby_msvc_addendum_bytes_are_required(self):
+        path = "licenses/Dobby-MSVC-2026-CRT-NOTICE.txt"
+        changed = dict(self.extra)
+        changed[path] = b""
+        with self.assertRaisesRegex(ValueError, "notice overwrite or hash mismatch"):
+            self.repack(extra=changed)
+
+    def test_dobby_source_revision_and_profile_cannot_change(self):
+        sources = json.loads(json.dumps(self.sources))
+        dobby = next(r for r in sources["records"] if r["repository"] == "BepInEx/Dobby")
+        self.assertEqual(dobby["commit"], "888d971214900374edbca6206fad6ded8a2c1311")
+        self.assertEqual(dobby["archiveSha256"], "00c0a582fc69efd52aa3a95449d27882384b653eb0e6524b79e796e8a8ef807d")
+        for field in ("commit", "archiveSha256", "url"):
+            changed = json.loads(json.dumps(sources))
+            record = next(r for r in changed["records"] if r["repository"] == "BepInEx/Dobby")
+            record[field] = "b" * 40 if field == "commit" else "unapproved source"
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "exact tested public GitHub revisions"):
+                self.repack(sources=changed)
+        sources["dobbySourceBuild"]["description"] = "unverified profile"
+        with self.assertRaisesRegex(ValueError, "exact tested public GitHub revisions"):
+            self.repack(sources=sources)
+
+    def test_dobby_build_resources_have_pinned_public_source_links(self):
+        helpers = {r["path"]: r for r in self.sources["helpers"]}
+        for record in pack.maintained_dobby_files():
+            helper = helpers[record["path"]]
+            self.assertEqual(helper["sha256"], record["sha256"])
+            self.assertEqual(helper["url"], f"https://github.com/{pack.ROOT_REPO}/blob/" + "a" * 40 + "/" + record["path"])
+        self.assertEqual(helpers[pack.DOBBY_PROFILE["helperPath"]]["sha256"], pack.DOBBY_PROFILE["helperSha256"])
+        files, _ = self.repack()
+        self.assertIn(b"official two-phase", files["SOURCE-DOWNLOADS.txt"])
+        self.assertIn(b"Rebuilt Dobby with Windows version metadata and security protections to address antivirus detections.", files["README.txt"])
+        self.assertIn(b"Dobby (BepInEx fork) | 1.0.5 / 888d971; Windows source build", files["THIRD-PARTY-NOTICES.md"])
+        self.assertIn(pack.DOBBY_PROFILE["archiveSha256"].encode(), files["SOURCE-DOWNLOADS.txt"])
+        self.assertNotIn(b"PDB", files["README.txt"])
+        self.assertNotIn(b"symbol-free", files["README.txt"])
+        self.assertNotIn(b"Compatibility checks passed", files["README.txt"])
 
     def test_native_capstone_version_is_distinguished_from_unchanged_python_bindings(self):
         with mock.patch.dict(pack.CAPSTONE_PROFILE, {"nativeVersion": "5.0.9", "patchPath": None, "patchSha256": None, "extraFiles": []}):
@@ -265,7 +347,7 @@ class SourceBuildPackage(unittest.TestCase):
             files, _ = self.repack(sources=sources)
             self.assertIn(b"Native 5.0.9 source build; Python bindings 5.0.6", files["THIRD-PARTY-NOTICES.md"])
             self.assertIn(b"Capstone native version: 5.0.9", files["SOURCE-DOWNLOADS.txt"])
-            self.assertFalse(any(h["path"].startswith("patches/") for h in sources["helpers"]))
+            self.assertFalse(any(h["path"].startswith("patches/capstone/") for h in sources["helpers"]))
 
     def test_resource_and_cmake_build_inputs_have_exact_commit_links_and_hashes(self):
         helpers = {r["path"]: r for r in self.sources["helpers"]}
@@ -280,6 +362,9 @@ class SourceBuildPackage(unittest.TestCase):
 
     def test_maintained_build_input_cannot_escape_its_source_directory(self):
         with mock.patch.dict(pack.CAPSTONE_PROFILE, {"extraFiles": [{"path": "../private-file", "sha256": "a" * 64}]}):
+            with self.assertRaises(ValueError):
+                pack.make_sources("a" * 40)
+        with mock.patch.dict(pack.DOBBY_PROFILE, {"extraFiles": [{"path": "../private-file", "sha256": "a" * 64}]}):
             with self.assertRaises(ValueError):
                 pack.make_sources("a" * 40)
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Package three verified source builds over one immutable audited runtime.
+"""Package four verified source builds over one immutable audited runtime.
 
 The ordinary Nexus packager remains unchanged. This profile only accepts the
-three tested DLL hashes, pinned public source revisions, and committed notices.
+four tested DLL hashes, pinned public source revisions, and committed notices.
 It produces one installable runtime ZIP; no source archive is published on Nexus.
 """
 from __future__ import annotations
@@ -46,21 +46,55 @@ CAPSTONE_PROFILE = {
     ],
     "description": "5.0.9 maintenance/security fixes, encoding-size initialization fix, MSVC stack protection and CFG; full architecture/detail/allocator features retained",
 }
+DOBBY_PROFILE = {
+    "finalTestedProfile": True,
+    "version": "1.0.5",
+    "commit": "888d971214900374edbca6206fad6ded8a2c1311",
+    "archiveSha256": "00c0a582fc69efd52aa3a95449d27882384b653eb0e6524b79e796e8a8ef807d",
+    "dllSha256": "fac2aa3399e8b73352181bfaa5fb9e3f55eb4ebf638d35c04a0857e5bc764001",
+    "helperPath": "tools/build-dobby.ps1",
+    "helperSha256": "fffe9f2e88ffd90c3d030470f3e5a9f3d0153a8e5bf0b590212606e7720c9fb1",
+    "extraFiles": [
+        {"path": "patches/dobby/1.0.5-version.rc", "sha256": "fd681551c72c1cbb19c4d09b3f3d6e193ab2c3fa1061ca1d212415edc893cb33"},
+        {"path": "patches/dobby/1.0.5-msvc-provenance.cmake", "sha256": "c2f7e62f87d4210c9fe55e01c442cf79bed66f6074b7cc30ff7da77b8f813c60"},
+    ],
+    "description": "Unchanged official Windows x64 Release feature profile and two-phase Prepare/Commit API; truthful version resources, static MSVC release CRT, stack protection, CFG, ASLR and DEP",
+}
 MANIFEST = zipio.MANIFEST
 SITE = zipio.PYTHON + "Lib/site-packages/"
 CAPSTONE_DLL = SITE + "capstone/lib/capstone.dll"
+DOBBY_DLL = "BepInEx/core/dobby.dll"
 RECORD = SITE + "capstone-5.0.6.dist-info/RECORD"
 REPLACEMENTS = {
     "winhttp.dll": "722170e9d492f75f16ada1068eabdcdc06ed2fbe90154d2ceca5832562ef1588",
     "BepInEx/core/Il2CppInterop.Common.dll": "1928f201590f2e2b6827adba98191d253e5074769e93405a20f254e4efa984e6",
     CAPSTONE_DLL: CAPSTONE_PROFILE["dllSha256"],
+    DOBBY_DLL: DOBBY_PROFILE["dllSha256"],
 }
-NOTICE_NAMES = {
-    "licenses/MSVC-2026-CRT-NOTICE.txt",
-    "licenses/MSVC-2026-Runtime-LICENSE.txt",
-    "licenses/MSVC-2026-Community-LICENSE.txt",
+NOTICE_PROFILE = {
+    "licenses/MSVC-2026-CRT-NOTICE.txt": {
+        "sha256": "69c87d0458a2a04d016a6190e93f1784d7e5c14c2168e7a130390dbefc0b50ce",
+        "sourceUrl": "https://visualstudio.microsoft.com/license-terms/",
+    },
+    "licenses/MSVC-2026-Runtime-LICENSE.txt": {
+        "sha256": "c719078e78b378064328cc3a5bad39e347491e64beedf9c1cac9a7d49ea55aa1",
+        "sourceUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx",
+    },
+    "licenses/MSVC-2026-Community-LICENSE.txt": {
+        "sha256": "a6bcf1feb139a29d3ec21aafa6125f30f5c838e6ee07d2d141373d9cce1cb675",
+        "sourceUrl": "https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Community_ENU.docx",
+    },
+    "licenses/Dobby-LLVM-exception-NOTICE.txt": {
+        "sha256": "21bfefe67d8c6f27e75ddbb85ef544146efe5f50c05fe1a945fe897816218b81",
+        "sourceUrl": "https://raw.githubusercontent.com/llvm/llvm-project/1fdec59bffc11ae37eb51a1b9869f0696bfd5312/llvm/LICENSE.TXT",
+    },
+    "licenses/Dobby-MSVC-2026-CRT-NOTICE.txt": {
+        "sha256": "13797a774980c419e548bc15b80353b1a53cf6482d0b503722b390208c57434f",
+        "sourceUrl": "https://visualstudio.microsoft.com/license-terms/",
+    },
 }
-HELPERS = ("tools/build-doorstop.ps1", "tools/build-il2cpp-common.ps1", "tools/build-capstone.ps1")
+NOTICE_NAMES = set(NOTICE_PROFILE)
+HELPERS = ("tools/build-doorstop.ps1", "tools/build-il2cpp-common.ps1", "tools/build-capstone.ps1", DOBBY_PROFILE["helperPath"])
 TEXT_CHANGES = {"README.txt", "SOURCE-DOWNLOADS.txt", "THIRD-PARTY-NOTICES.md", "licenses/SOURCE-COMPLIANCE.txt", MANIFEST, RECORD}
 BASE_RECONSTRUCTION = {
     "packagerUrl": "https://github.com/david568303/CarX-Modding/blob/ffe30889b80f3e871982e07a25ba1882720cd313/tools/package-nexus.py",
@@ -146,6 +180,23 @@ def maintained_capstone_files() -> list[dict]:
     return records
 
 
+def maintained_dobby_files() -> list[dict]:
+    records = list(DOBBY_PROFILE["extraFiles"])
+    paths: set[str] = set()
+    for record in records:
+        name = zipio.safe_name(record["path"])
+        require(name.startswith("patches/dobby/") and name not in paths
+                and re.fullmatch(r"[0-9a-f]{64}", record["sha256"]) is not None,
+                "Invalid maintained Dobby source/resource record")
+        paths.add(name)
+    return records
+
+
+def require_tested_profiles() -> None:
+    require(CAPSTONE_PROFILE.get("finalTestedProfile") is True, "The final tested Capstone source-build profile has not been pinned")
+    require(DOBBY_PROFILE.get("finalTestedProfile") is True, "The final tested Dobby source-build profile has not been approved")
+
+
 def make_sources(root_commit: str) -> dict:
     records = [
         archive_source("Maintained compatibility code, build helpers and patches", ROOT_REPO, root_commit),
@@ -154,19 +205,22 @@ def make_sources(root_commit: str) -> dict:
                        "96d223a475c885ef08118a3adaee0c2ed5d65edd83fbea9987e5a305f1123ac5"),
         archive_source("Capstone native " + CAPSTONE_PROFILE["nativeVersion"] + " upstream source", "capstone-engine/capstone",
                        CAPSTONE_PROFILE["commit"], CAPSTONE_PROFILE["archiveSha256"]),
+        archive_source("Dobby " + DOBBY_PROFILE["version"] + " upstream source (Windows native rebuilt)", "BepInEx/Dobby",
+                       DOBBY_PROFILE["commit"], DOBBY_PROFILE["archiveSha256"]),
         archive_source("Unchanged BepInEx be.791 source", "BepInEx/BepInEx", BEPINEX_COMMIT,
                        "53f87ca8e5ab9891ab3e22af0dc021a17b5bdc3f0fa917f815d6d0667d90b259"),
     ]
-    maintained = {r["path"]: r for r in maintained_capstone_files()}
-    paths = list(HELPERS) + sorted(maintained)
+    maintained = {r["path"]: r for r in maintained_capstone_files() + maintained_dobby_files()}
+    maintained[DOBBY_PROFILE["helperPath"]] = {"path": DOBBY_PROFILE["helperPath"], "sha256": DOBBY_PROFILE["helperSha256"]}
+    paths = sorted(set(HELPERS) | set(maintained))
     helpers = [{"path": path, "url": f"https://github.com/{ROOT_REPO}/blob/{root_commit}/{path}",
                 **({"sha256": maintained[path]["sha256"]} if path in maintained else {})} for path in paths]
     return {"rootCommit": root_commit, "nativeCommit": NATIVE_COMMIT, "records": records, "helpers": helpers,
-            "capstoneSourceBuild": dict(CAPSTONE_PROFILE)}
+            "capstoneSourceBuild": dict(CAPSTONE_PROFILE), "dobbySourceBuild": dict(DOBBY_PROFILE)}
 
 
 def collect_sources(repo: Path) -> dict:
-    require(CAPSTONE_PROFILE.get("finalTestedProfile") is True, "The final tested Capstone source-build profile has not been pinned")
+    require_tested_profiles()
     require(Path(git(repo, "rev-parse", "--show-toplevel")).resolve() == repo.resolve(), "Unexpected repository root")
     require(not git(repo, "status", "--porcelain=v1", "--untracked-files=all"), "Root repository must be clean and committed")
     root_commit = git(repo, "rev-parse", "HEAD")
@@ -181,7 +235,7 @@ def collect_sources(repo: Path) -> dict:
         git(repo, "cat-file", "-e", f"HEAD:{path}")
         require((repo / path).is_file(), f"Missing committed build helper: {path}")
         if helper.get("sha256"):
-            require(digest((repo / path).read_bytes()) == helper["sha256"], f"Maintained Capstone source/resource changed: {path}")
+            require(digest((repo / path).read_bytes()) == helper["sha256"], f"Maintained build source/resource changed: {path}")
     for path in ("licenses/source-build-notices.json", *sorted(NOTICE_NAMES)):
         git(repo, "cat-file", "-e", f"HEAD:{path}")
     git(native, "cat-file", "-e", "HEAD:build-msvc.ps1")
@@ -198,19 +252,28 @@ def load_notices(repo: Path) -> tuple[dict[str, bytes], list[dict]]:
     spec = json.loads((repo / "licenses/source-build-notices.json").read_text(encoding="utf-8-sig"))
     require(spec.get("format") == 1 and isinstance(spec.get("files"), list), "Invalid source-build notice specification")
     records = spec["files"]
-    require(len(records) == 3 and {r["path"] for r in records} == NOTICE_NAMES, "Exactly the three approved MSVC notices are required")
+    validate_notice_records(records)
     files: dict[str, bytes] = {}
     for record in records:
         path = zipio.safe_name(record["path"])
-        require(path not in files, "Duplicate MSVC notice")
-        url = urlsplit(record["sourceUrl"])
-        require(url.scheme == "https" and url.hostname in ("learn.microsoft.com", "visualstudio.microsoft.com", "aka.ms", "go.microsoft.com")
-                and not url.username and not url.password and not any(ord(c) < 32 for c in record["sourceUrl"]), "Notice URL must identify an official Microsoft source")
-        require(isinstance(record["component"], str) and bool(record["component"].strip()), "Notice component is missing")
         data = (repo / path).read_bytes()
-        require(bool(data) and digest(data) == record["sha256"], f"MSVC notice checksum mismatch: {path}")
+        require(bool(data) and digest(data) == NOTICE_PROFILE[path]["sha256"], f"Source-build notice checksum mismatch: {path}")
         files[path] = data
     return files, records
+
+
+def validate_notice_records(records: list[dict]) -> None:
+    require(len(records) == len(NOTICE_NAMES) and {r["path"] for r in records} == NOTICE_NAMES,
+            "Exactly the five approved source-build notice paths are required")
+    for record in records:
+        path = zipio.safe_name(record["path"])
+        expected = NOTICE_PROFILE[path]
+        url = urlsplit(record["sourceUrl"])
+        require(url.scheme == "https" and not url.username and not url.password
+                and record["sourceUrl"] == expected["sourceUrl"],
+                f"Notice URL must match its approved official source: {path}")
+        require(record["sha256"] == expected["sha256"], f"Source-build notice checksum mismatch: {path}")
+        require(isinstance(record["component"], str) and bool(record["component"].strip()), "Notice component is missing")
 
 
 def wheel_hash(data: bytes) -> str:
@@ -237,14 +300,14 @@ def update_record(original: bytes, old_dll: bytes, new_dll: bytes) -> bytes:
 
 def source_text(sources: dict) -> str:
     lines = ["CORRESPONDING SOURCE — EXACT PUBLIC GITHUB REVISIONS", "",
-             "Download all five source snapshots. The root archive does not expand its native submodule;",
+             "Download all six source snapshots. The root archive does not expand its native submodule;",
              "the separate complete UnityDoorstop snapshot below is required for the rebuilt native DLL.", ""]
     for record in sources["records"]:
         lines.extend((record["component"], "  " + record["url"], "  Commit: " + record["commit"]))
         if record.get("archiveSha256"):
             lines.append("  Source archive SHA-256: " + record["archiveSha256"])
         lines.append("")
-    lines.append("Maintained build helpers and any required Capstone patch:")
+    lines.append("Maintained build helpers, resources and any required Capstone patch:")
     for helper in sources["helpers"]:
         lines.append("  " + helper["url"])
         if helper.get("sha256"):
@@ -254,6 +317,10 @@ def source_text(sources: dict) -> str:
     lines.extend(("", "Capstone native version: " + CAPSTONE_PROFILE["nativeVersion"],
                   "Unchanged Python binding version: " + CAPSTONE_PROFILE["pythonBindingVersion"],
                   "Capstone source-build profile: " + CAPSTONE_PROFILE["description"], "",
+                  "Dobby native version: " + DOBBY_PROFILE["version"],
+                  "Dobby source-build profile: " + DOBBY_PROFILE["description"],
+                  "Dobby runtime source is unchanged; its official two-phase API and feature profile are retained.",
+                  "Dobby uses the static release CRT; no separate Microsoft runtime DLL or installer is added.", "",
                   "Source remains on GitHub; only the installable runtime is uploaded to Nexus.", ""))
     return "\n".join(lines)
 
@@ -274,13 +341,18 @@ def compliance_text(sources: dict) -> str:
             "Capstone: run tools/build-capstone.ps1 -SourceArchive <exact upstream ZIP>\n"
             "-BuildRoot <fresh directory>; use the exact native source version and any patch\n"
             "listed above. The unchanged Python bindings retain their recorded package version.\n"
+            "Dobby: run tools/build-dobby.ps1 -SourceArchive <exact BepInEx/Dobby source ZIP>\n"
+            "-BuildRoot <fresh directory>. Its unchanged official Windows x64 Release feature\n"
+            "profile and two-phase Prepare/Commit API are retained, with standard version\n"
+            "resources and MSVC protections. Its static CRT needs no new external CRT DLL.\n"
             "Rebuilt files can differ with compiler versions; ABI-compatible replacements need\n"
             "not have the same hash. The packaged hashes are recorded in the package manifest.\n\n"
             "Close the game before replacing winhttp.dll, BepInEx/core/Il2CppInterop.Common.dll,\n"
-            "or BepInEx/compatibility/python/Lib/site-packages/capstone/lib/capstone.dll.\n"
+            "BepInEx/core/dobby.dll or BepInEx/compatibility/python/Lib/site-packages/capstone/lib/capstone.dll.\n"
             "UnityDoorstop/BepInEx retain LGPL-2.1-only and Il2CppInterop LGPL-3.0-only.\n"
             "Capstone retains its BSD/LLVM terms; retained MSVC notices apply to source-built\n"
-            "native components. Keep all license texts, notices and equivalent source access.\n"
+            "native components. Dobby retains Apache 2.0 and its LLVM clear-cache component's\n"
+            "Apache-2.0 WITH LLVM-exception notice. Keep all license texts, notices and equivalent source access.\n"
             "No signature gate or restriction on reverse engineering for LGPL debugging is imposed.\n")
 
 
@@ -292,18 +364,22 @@ def runtime_notices(original: bytes, sources: dict, notices: list[dict]) -> byte
                         + " source build; Python bindings " + CAPSTONE_PROFILE["pythonBindingVersion"] + " |", 1)
     text = text.replace("| LLVM-derived portions in Capstone | 5.0.6 |",
                         "| LLVM-derived portions in Capstone | " + CAPSTONE_PROFILE["nativeVersion"] + " |", 1)
+    text = text.replace("| Dobby (BepInEx fork) | 1.0.5 / 888d971 |",
+                        "| Dobby (BepInEx fork) | 1.0.5 / 888d971; Windows source build |", 1)
     start = text.find("The machine-readable [license manifest]")
     end = text.find("Copyright holders include", start)
     require(start >= 0 and end > start, "Baseline component provenance block is missing")
     text = (text[:start] + "The baseline [license manifest](licenses/manifest.json) retains the original\n"
             "component notices and exact upstream source pins. This profile rebuilds the modified\n"
-            "UnityDoorstop loader, Il2CppInterop.Common 1.5.3, and Capstone native DLL.\n"
+            "UnityDoorstop loader, Il2CppInterop.Common 1.5.3, Capstone native DLL and Dobby.\n"
             "Common's C# source is unchanged; its helper records SDK selection and deterministic\n"
             "build settings. Capstone's exact native version/profile and any patch are recorded\n"
             "in SOURCE-DOWNLOADS.txt; its Python binding version is unchanged.\n"
-            "The other 249 DLL/EXE/PYD files remain byte-identical to the audited baseline.\n"
-            "These three DLLs are source builds and are not the original official binary bytes.\n\n"
-            "Additional MSVC source-build notices:\n"
+            "Dobby's official Windows x64 feature profile and two-phase Prepare/Commit API are\n"
+            "unchanged; its source build adds standard version resources and MSVC protections.\n"
+            "The other 248 DLL/EXE/PYD files remain byte-identical to the audited baseline.\n"
+            "These four DLLs are source builds and are not the original official binary bytes.\n\n"
+            "Additional source-build notices (including LLVM attribution and static MSVC CRT):\n"
             + "".join(f"- [{r['path']}]({r['path']}) — {r['component']}\n" for r in notices) + "\n" + text[end:])
     start = text.find("This Nexus runtime build links existing corresponding source downloads on GitHub.")
     end = text.find("Replaceable shared DLLs are used.", start)
@@ -311,8 +387,8 @@ def runtime_notices(original: bytes, sources: dict, notices: list[dict]) -> byte
     text = (text[:start] + "Complete corresponding source and build helpers are hosted at immutable public\n"
             f"GitHub revisions: maintained root `{sources['rootCommit']}` and complete modified\n"
             f"native fork `{sources['nativeCommit']}`. The root archive alone does not expand\n"
-            "the native submodule. Download the native fork plus the exact Common, Capstone\n"
-            "and BepInEx snapshots listed in `SOURCE-DOWNLOADS.txt`; follow the retained\n"
+            "the native submodule. Download the native fork plus the exact Common, Capstone,\n"
+            "Dobby and BepInEx snapshots listed in `SOURCE-DOWNLOADS.txt`; follow the retained\n"
             "`licenses/SOURCE-COMPLIANCE.txt`. No source archive is embedded in this runtime.\n\n" + text[end:])
     start = text.find("## Release policy")
     require(start >= 0, "Baseline release-policy block is missing")
@@ -326,6 +402,7 @@ def runtime_notices(original: bytes, sources: dict, notices: list[dict]) -> byte
 
 def repack(base_data: bytes, replacements: dict[str, bytes], sources: dict,
            extra_notices: dict[str, bytes], notice_records: list[dict], version: str) -> tuple[dict[str, bytes], dict]:
+    require_tested_profiles()
     require(re.fullmatch(r"20\d{2}\.\d{2}\.\d{2}(?:\.\d+)?", version) is not None, "Version must be date based")
     datetime.strptime(".".join(version.split(".")[:3]), "%Y.%m.%d")
     base = zipio.read_archive(base_data, "audited runtime ZIP")
@@ -333,14 +410,15 @@ def repack(base_data: bytes, replacements: dict[str, bytes], sources: dict,
     base_inventory = canonical_base_inventory(base, baseline_manifest)
     require(base_inventory == BASE_INVENTORY_SHA256, "Base payload inventory does not match the immutable audited runtime")
     actual_base_sha256 = digest(base_data)
-    require(set(replacements) == set(REPLACEMENTS), "Exactly the three approved replacement paths are required")
+    require(set(replacements) == set(REPLACEMENTS), "Exactly the four approved replacement paths are required")
     for name, data in replacements.items():
         require(digest(data) == REPLACEMENTS[name], f"Unexpected replacement hash: {name}")
-    require(set(extra_notices) == NOTICE_NAMES and len(notice_records) == 3
-            and {r["path"] for r in notice_records} == NOTICE_NAMES, "Unexpected or missing MSVC notice paths")
+    require(set(extra_notices) == NOTICE_NAMES, "Unexpected or missing source-build notice paths")
+    validate_notice_records(notice_records)
     for record in notice_records:
         name = record["path"]
-        require(name not in base and digest(extra_notices[name]) == record["sha256"], "MSVC notice overwrite or hash mismatch")
+        require(name not in base and bool(extra_notices[name])
+                and digest(extra_notices[name]) == NOTICE_PROFILE[name]["sha256"], "Source-build notice overwrite or hash mismatch")
     require(sources == make_sources(sources["rootCommit"]), "Source records must use the exact tested public GitHub revisions")
     runtime = dict(base)
     runtime.update(replacements)
@@ -348,11 +426,11 @@ def repack(base_data: bytes, replacements: dict[str, bytes], sources: dict,
     runtime[RECORD] = update_record(base[RECORD], base[CAPSTONE_DLL], replacements[CAPSTONE_DLL])
     runtime["README.txt"] = (f"CARX DRIFT RACING ONLINE 2 — BEPINEX RUNTIME {version}\n\n"
         "Extract this ZIP into the game folder beside the executable and launch through Steam.\n"
-        "First launch prepares symbol-free API bindings, normalized metadata and interop files.\n"
-        "Later launches reuse validated caches. No separate launcher or external PDB is needed.\n\n"
-        "This is a built Windows x64 runtime. The native loader, Common library and Capstone\n"
-        "native library are maintained source builds; their exact sources and build helpers\n"
-        "are listed in SOURCE-DOWNLOADS.txt. No development archive is included here.\n"
+        "First launch prepares API bindings, normalized metadata and interop files.\n"
+        "Later launches reuse validated caches.\n\n"
+        "Rebuilt Dobby with Windows version metadata and security protections to address antivirus detections.\n\n"
+        "This Windows x64 runtime includes source-built Doorstop, Common, Capstone and Dobby.\n"
+        "Exact sources and build helpers are listed in SOURCE-DOWNLOADS.txt.\n"
         "Retain LICENSE, THIRD-PARTY-NOTICES.md, licenses/ and equivalent source access.\n\n"
         "Install BepInEx 6 IL2CPP plugins in BepInEx/plugins. Supported metadata schemas: 38/39.\n"
         "Logs: BepInEx/LogOutput.log and BepInEx/metadata-bootstrap.log.\n").encode("utf-8")
@@ -373,9 +451,9 @@ def repack(base_data: bytes, replacements: dict[str, bytes], sources: dict,
         "sourceRevision": {"commit": sources["rootCommit"], "dirty": False},
         "doorstopRevision": {"commit": sources["nativeCommit"], "dirty": False},
         "correspondingSources": sources["records"], "buildHelpers": sources["helpers"],
-        "capstoneSourceBuild": dict(CAPSTONE_PROFILE), "additionalNotices": notice_records,
+        "capstoneSourceBuild": dict(CAPSTONE_PROFILE), "dobbySourceBuild": dict(DOBBY_PROFILE), "additionalNotices": notice_records,
         "replacements": [{"path": n, "baselineSha256": digest(base[n]), "sha256": REPLACEMENTS[n], "length": len(runtime[n])} for n in sorted(REPLACEMENTS)],
-        "unchangedExecutableFiles": 249, "initialApiMapIncluded": False, "testPluginsIncluded": False,
+        "unchangedExecutableFiles": 248, "initialApiMapIncluded": False, "testPluginsIncluded": False,
         "files": zipio.file_records({n: data for n, data in runtime.items() if n != MANIFEST})})
     zipio.validate_tree(runtime, "source-build runtime")
     zipio.no_archives(runtime, "source-build runtime")
@@ -383,7 +461,7 @@ def repack(base_data: bytes, replacements: dict[str, bytes], sources: dict,
     report = {"format": 1, "version": version, "baseSha256": actual_base_sha256, "auditedBaseZipSha256": BASE_SHA256,
               "basePayloadInventorySha256": base_inventory, "baseReconstruction": BASE_RECONSTRUCTION,
               "sourceRevision": sources["rootCommit"],
-              "nativeRevision": sources["nativeCommit"], "replacedExecutableFiles": 3, "unchangedExecutableFiles": 249,
+              "nativeRevision": sources["nativeCommit"], "replacedExecutableFiles": 4, "unchangedExecutableFiles": 248,
               "noNestedArchives": True, "runtimeFiles": len(runtime), "sourceArchiveIncluded": False,
               "replacementHashes": dict(REPLACEMENTS), "additionalNotices": notice_records}
     return runtime, report
@@ -393,7 +471,8 @@ def package(args: argparse.Namespace, sources: dict, extra_notices: dict[str, by
     require(not args.output_dir.is_symlink(), "Output directory must be an ordinary directory")
     output = args.output_dir.resolve()
     require(not output.exists() or (output.is_dir() and not any(output.iterdir())), "Output directory must be fresh or empty")
-    replacements = {"winhttp.dll": args.winhttp.read_bytes(), "BepInEx/core/Il2CppInterop.Common.dll": args.common.read_bytes(), CAPSTONE_DLL: args.capstone.read_bytes()}
+    replacements = {"winhttp.dll": args.winhttp.read_bytes(), "BepInEx/core/Il2CppInterop.Common.dll": args.common.read_bytes(),
+                    CAPSTONE_DLL: args.capstone.read_bytes(), DOBBY_DLL: args.dobby.read_bytes()}
     files, report = repack(args.base_zip.read_bytes(), replacements, sources, extra_notices, notice_records, args.version)
     output.mkdir(parents=True, exist_ok=True)
     name = f"CarX-Drift-Racing-Online-2-BepInEx-Runtime-{args.version}.zip"
@@ -411,8 +490,9 @@ def main() -> int:
     parser.add_argument("--winhttp", type=Path, required=True)
     parser.add_argument("--common", type=Path, required=True)
     parser.add_argument("--capstone", type=Path, required=True)
+    parser.add_argument("--dobby", type=Path, required=True)
     parser.add_argument("--output-dir", type=Path, required=True)
-    parser.add_argument("--version", default="2026.11.07.1")
+    parser.add_argument("--version", default="2026.11.07.2")
     args = parser.parse_args()
     try:
         repo = Path(__file__).resolve().parents[1]
