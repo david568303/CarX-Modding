@@ -2,15 +2,21 @@
 
 The installable CarX Drift Racing Online 2 package has a suspected false positive,
 not a vendor-confirmed false positive. A low detection count does not establish safety.
+The current Nexus file **15** is **quarantined**. The exact runtime ZIP's latest
+VirusTotal analysis is **1/62**, with Zillya reporting `Trojan.GenCBL.Win32.22575`
+on **7 November 2026 at 02:05:52 Europe/Madrid**. The bundled, unchanged official
+`dobby.dll` has the **same Zillya label** in a dated direct report and is a likely
+contributor. This does not establish the sole archive trigger or a source-line cause.
 
-## Tested source-build workaround
+## Source-build candidate and validation
 
 Development is isolated on `fix/nexus-release-analysis`; `main` and existing GitHub
 releases are unchanged. No support request has been sent on the user's behalf.
 
 Two replacement DLLs completed direct scans on **7 November 2026 at 01:08:29
 Europe/Madrid**, each at **0/71**. Cynet, Microsoft and VBA32 explicitly returned
-`Undetected` in both reports:
+`Undetected` in both reports. These are dated observations, not fresh checks of
+the current Zillya detection or guarantees of future scanner verdicts:
 
 | Component | Source/build change | Completed report |
 | --- | --- | --- |
@@ -61,12 +67,42 @@ These checks did not start the actual game and do not replace an in-game test.
 The final installable runtime is
 `CarX-Drift-Racing-Online-2-BepInEx-Runtime-2026.11.07.1.zip`, 48,112,884 bytes,
 SHA-256 `7ba02488cc945fb7ff99403e498568cdc77d43ca7827f7316b0c33293a1e8991`.
-Its [completed archive report](https://www.virustotal.com/gui/file/7ba02488cc945fb7ff99403e498568cdc77d43ca7827f7316b0c33293a1e8991/detection)
-is **0/65**, analysed 7 November at **01:51:42 Europe/Madrid**. Cynet, Microsoft and
-VBA32 returned `Undetected`; ClamAV timed out, ALYac and Trustlook failed, and seven
-engines could not process the archive type. VirusTotal also warned that this
-multi-file archive exceeds its 3 MB archive-inspection limit. The outer result is
-therefore separate from the completed 0/71 direct scans of each replacement DLL.
+Its [latest archive report](https://www.virustotal.com/gui/file/7ba02488cc945fb7ff99403e498568cdc77d43ca7827f7316b0c33293a1e8991/detection)
+is **1/62**, analysed 7 November at **02:05:52 Europe/Madrid**. Zillya reports
+`Trojan.GenCBL.Win32.22575`; Cynet, Microsoft and VBA32 return `Undetected`.
+This supersedes the earlier **0/65** observation at **01:51:42 Europe/Madrid**.
+In that earlier report ClamAV timed out, ALYac and Trustlook failed, and seven engines
+could not process the archive type; it is retained as history, not current clearance.
+VirusTotal warned that this multi-file archive exceeds its 3 MB archive-inspection
+limit. Its Details page lists **927 entries**, **252 PE files** and a contains-PE
+warning. No `no_nested` tag was observed; the absence of nested archives is a
+separate result of the local ZIP audit.
+The fully expanded Relations listing shows 198 rows: 197 linked reports display
+zero detections; the package manifest has no linked report. All 197 linked names
+and hashes match this ZIP, but they cover only **100 of its 252 PE files**, with
+Scanned dates ranging from **18 January to 7 November 2026** and 47–72 engines.
+Common, Il2CppInterop.Runtime and MonoMod.RuntimeDetour appear; the rebuilt
+winhttp/Capstone, dobby and MetadataBootstrap do not appear in this listing.
+These are heterogeneous historical report summaries, not a fresh uniform scan of
+all 925 files. Dobby is absent from that Relations listing but has a separately
+opened, positive direct report, described below. The archive result is separate
+from the dated direct reports for the replacement DLLs.
+
+The bundled **`BepInEx/core/dobby.dll`**, 205,312 bytes, SHA-256
+`8015de7d867245a1095d13947a63763878e4cf5fd3d3089b63cc39200b055ded`,
+is byte-for-byte identical to the official BepInEx 791 dependency. Its
+[direct report](https://www.virustotal.com/gui/file/8015de7d867245a1095d13947a63763878e4cf5fd3d3089b63cc39200b055ded/detection)
+shows **3/71**, last analysed **1 November 2026 at 10:34:36 Europe/Madrid**:
+Zillya `Trojan.GenCBL.Win32.22575`, Cynet `Malicious (score: 100)` and SecureAge
+`Malicious`. The exact Zillya label matches the archive's later result, making this
+a likely contributor; it does not prove Dobby is the only archive trigger, that its
+source is malicious, or that a particular source line causes the detection. This is
+a historical direct report. A fresh reanalysis completed on **7 November 2026 at
+02:43:27 Europe/Madrid**, showing **2/69**: Cynet `Malicious (score: 100)` and
+SecureAge `Malicious` persist. Zillya returned **Failure**, not `Undetected`;
+Microsoft and VBA32 returned `Undetected`. Zillya's failed fresh check does not
+clear or invalidate its earlier matching detection, or establish Dobby as the sole
+archive trigger.
 
 Independent final-ZIP verification checked all 925 files and 924 manifest records,
 all three exact scanned hashes, 249 unchanged executable files, the 29 preserved
@@ -74,12 +110,24 @@ license files, three added MSVC notices, the wheel RECORD and immutable source
 links. Fresh extraction passed isolated Python imports and decoding from an
 unrelated working directory, with all runtime files remaining unchanged.
 
+A subsequent read-only audit found no duplicate or case-colliding member names,
+encrypted entries, header/CRC mismatches, overlapping entries, prefix/trailing data,
+nested archives or unexplained PE overlays. All 249 unchanged executables retain
+their audited bytes: 215 match the official BepInEx distribution, 33 match the
+official Python embedded distribution, and one is the existing MetadataBootstrap.
+All 217 certificate-bearing executables have valid Authenticode signatures; the
+other 35 are unsigned. These observations do not identify Zillya's rule or certify
+the package; they provide no evidence of a packaging anomaly to repair.
+
 This exact ZIP is now uploaded to Nexus as **file 15**, version **2026.11.07.1**:
 [current Nexus file](https://www.nexusmods.com/carxdriftracingonline2/mods/11?tab=files&file_id=15).
 The public page records **7 November 2026, 02:05 Europe/Madrid**, with a displayed
-size of **45.9 MB**. It currently states: **“This file is not yet available for
-download. Virus scanning is in progress.”** Nexus has not yet cleared the file;
-its pending scan is separate from the completed VirusTotal reports above.
+size of **45.9 MB**. File 15 is now **quarantined**, with the public header
+**“Some suspicious files”**. Its generic quarantine notice lists executable file
+types, scanner detections and nested archives as possible reasons; it does not
+identify the failing check or member. Nexus's restriction and the VirusTotal
+archive report are separate observations. The earlier pending-scan message has
+been superseded; Nexus has not cleared the file.
 Previous runtime file **12** was archived, leaving only this runtime in Main Files.
 No source archive was uploaded, and no support message was sent.
 
