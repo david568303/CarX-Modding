@@ -223,22 +223,22 @@
       "sha256": "b44409c067c6da52bfb54bb6624fb11a7b52157c3a13ae1400232f8196e86ad3"
     },
     {
-      "component": "Capstone native disassembler and Python bindings",
-      "version": "5.0.6",
+      "component": "Capstone native disassembler",
+      "version": "5.0.9",
       "license": "BSD-3-Clause",
       "file": "Capstone-BSD-3-Clause.txt",
-      "url": "https://raw.githubusercontent.com/capstone-engine/capstone/accf4df62f1fba6f92cae692985d27063552601c/LICENSE.TXT",
-      "upstream": "https://github.com/capstone-engine/capstone/tree/accf4df62f1fba6f92cae692985d27063552601c",
+      "url": "https://raw.githubusercontent.com/capstone-engine/capstone/022575848782a4801fd150fdbc927effcbca0864/LICENSE.TXT",
+      "upstream": "https://github.com/capstone-engine/capstone/tree/022575848782a4801fd150fdbc927effcbca0864",
       "appliesTo": "loader",
       "sha256": "65e9ed46a59976eda8f5bd1ea79a680dea38dd299c760bc9a8d87a764ef5029b"
     },
     {
       "component": "LLVM-derived portions in Capstone",
-      "version": "5.0.6",
+      "version": "5.0.9",
       "license": "NCSA / LLVM notice",
       "file": "Capstone-LLVM.txt",
-      "url": "https://raw.githubusercontent.com/capstone-engine/capstone/accf4df62f1fba6f92cae692985d27063552601c/LICENSE_LLVM.TXT",
-      "upstream": "https://github.com/capstone-engine/capstone/tree/accf4df62f1fba6f92cae692985d27063552601c",
+      "url": "https://raw.githubusercontent.com/capstone-engine/capstone/022575848782a4801fd150fdbc927effcbca0864/LICENSE_LLVM.TXT",
+      "upstream": "https://github.com/capstone-engine/capstone/tree/022575848782a4801fd150fdbc927effcbca0864",
       "appliesTo": "loader",
       "sha256": "dfdca2d7fdbabfd937f9dc41b7f61647b0e6cb1f9ee767ecb4520f979ebe91da"
     },

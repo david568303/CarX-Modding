@@ -34,6 +34,11 @@ Private game tests are optional. Set `CARX_API_TEST_GAME_DIR` for native binder 
 `CARX_NORMALIZED_FIXTURE` for metadata mutation tests. Fixture directories are ignored.
 Never commit the game files, metadata, original API maps or generated interop.
 
+`tests/native/run-discovery.ps1` exercises the shipping C resolver against a
+local UnityPlayer, GameAssembly and known-good reference map. Use the Capstone
+header directory and DLL from the same pinned build. The test compares
+every alias and export RVA, then checks stale maps and a missing decoder.
+
 `tools/test-release.ps1` is a local-only, opt-in fresh-extraction game-launch test.
 Run it with `-StripDebugDirectories` to verify discovery with the copied PE debug
 metadata removed. It copies game inputs into an isolated test location and checks

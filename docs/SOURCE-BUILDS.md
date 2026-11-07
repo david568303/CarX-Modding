@@ -9,7 +9,7 @@ Clone the source with submodules and run:
 ```powershell
 git clone --recurse-submodules https://github.com/david568303/CarX-Modding.git
 cd CarX-Modding
-.\tools\build-release.ps1 -Version 2026.11.07.4
+.\tools\build-release.ps1 -Version 2.0.0
 ```
 
 Use the release tag to reproduce a specific release. The source exporter

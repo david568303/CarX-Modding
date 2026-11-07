@@ -105,10 +105,10 @@ BepInEx generates interop assemblies. No Python installation is required.
 Install BepInEx 6 Unity IL2CPP plugins in BepInEx\plugins.
 Logs are in BepInEx\LogOutput.log and BepInEx\metadata-bootstrap.log.
 
-If upgrading from the Python-based release, the old
-BepInEx\compatibility\python and BepInEx\compatibility\tools folders and the
-old BepInEx\core\scripts\normalize_metadata.py, infer_native_decoder.py
-and requirements.txt are obsolete. Keep your plugins and configuration.
+If upgrading from the Python-based release, close the game first. You can
+remove its old BepInEx\compatibility\python folder and the old Python
+helpers under BepInEx\compatibility\tools and BepInEx\core\scripts.
+Keep your plugins and configuration.
 
 Source and build instructions: https://github.com/david568303/CarX-Modding
 Exact corresponding sources are in SOURCE-DOWNLOADS.txt.

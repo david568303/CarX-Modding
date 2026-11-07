@@ -9,7 +9,7 @@ Build from a clean tagged checkout with the pinned submodule initialized.
 See [the build instructions](SOURCE-BUILDS.md) and [tests](TESTING.md).
 
 ```powershell
-$version = '2026.11.07.4'
+$version = '2.0.0'
 .\tools\build-release.ps1 -Version $version
 ```
 
