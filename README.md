@@ -35,7 +35,7 @@ cd CarX-Modding
 
 Use PowerShell 7, existing Visual Studio C++ x64 build tools, CMake, and a .NET SDK
 that can target .NET 6. The release builder checks the hashes of its pinned inputs.
-Python is used only by developer tests and historical build tools.
+Python is used only by developer reference tests.
 See [third-party notices](THIRD-PARTY-NOTICES.md) for exact dependency versions and source.
 See [source-built DLLs and runtime packaging](docs/SOURCE-BUILDS.md) for the reviewed source-build profile.
 

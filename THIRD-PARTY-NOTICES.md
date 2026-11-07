@@ -116,6 +116,5 @@ game-content commercialization permission.
 All installable ZIPs include `LICENSE`, this notice and `licenses/`. The loader
 also provides corresponding source access as described above. Source archives generated
 from this repository retain the same licensing files. Large dependency archives
-and generated game files stay out of Git. `tools/prepare-licenses.py` verifies
-the committed notices and retrieves only the checksum-pinned corresponding source
-archives. Pass `--check-only` for an offline verification.
+and generated game files stay out of Git. The runtime packager checks the
+committed notice hashes and records the exact corresponding source revisions.
