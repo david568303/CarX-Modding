@@ -83,9 +83,9 @@ its pending scan is separate from the completed VirusTotal reports above.
 Previous runtime file **12** was archived, leaving only this runtime in Main Files.
 No source archive was uploaded, and no support message was sent.
 
-The saved Nexus changelog is:
+The saved Nexus changelog and visible file description both read:
 
-> Rebuilt Doorstop and Common, and updated Capstone to address antivirus false positives. Compatibility checks passed.
+> Rebuilt Doorstop and Common, and updated Capstone to address antivirus false positives.
 
 These results show which exact builds receive different scanner verdicts. They do
 not reveal either vendor's private detection rule or establish a particular source
