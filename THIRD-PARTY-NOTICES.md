@@ -8,7 +8,7 @@ their original licenses; including them together does not relicense them as MIT.
 
 ## Included components
 
-The loader ZIP includes the components below. Their original notices and
+The original bundled baseline includes the components below. Their original notices and
 licenses are retained with the compatibility source and installable package.
 
 | Component | Shipped version / source revision | License | Full text | Applies to |
@@ -46,9 +46,21 @@ notice's exact source URL and SHA-256 and the two bundled upstream source
 archives. Versions were read from shipped DLL metadata and pinned upstream
 build/package metadata; the unchanged official BepInEx archive is SHA-256
 `bb1c510909b69522733791f3a0817a487379a52da6468a492f1c9c19b3ec6f9a`.
-Bundled BepInEx, Il2CppInterop and their upstream dependencies are unchanged.
-Only UnityDoorstop and the separate compatibility/bootstrap components were
-modified or added by this project.
+In that baseline, bundled BepInEx, Il2CppInterop and their upstream dependencies
+are unchanged. The separate source-build runtime profile rebuilds modified
+UnityDoorstop, unchanged Il2CppInterop.Common 1.5.3 source, and Capstone native 5.0.9
+from commit `022575848782a4801fd150fdbc927effcbca0864` with the maintained correctness,
+version-resource and Windows protection integration. Python bindings stay at 5.0.6;
+the native 5.0.9 BSD/LLVM notices are byte-identical to the retained texts.
+Exact revisions, modifications and build instructions are in
+[SOURCE-BUILDS.md](docs/SOURCE-BUILDS.md) and each runtime's SOURCE-DOWNLOADS.txt.
+
+The source-built native DLLs statically link Microsoft's release C/C++ runtime.
+The [MSVC runtime notice](licenses/MSVC-2026-CRT-NOTICE.txt),
+[runtime terms](licenses/MSVC-2026-Runtime-LICENSE.txt) and
+[Visual Studio Community terms](licenses/MSVC-2026-Community-LICENSE.txt) are retained
+separately; MIT does not relicense Microsoft code. Their official provenance and
+checksums are recorded in [source-build-notices.json](licenses/source-build-notices.json).
 
 Copyright holders include the BepInEx Team; knah and Il2CppInterop contributors;
 Washi; ds5678; Sam Byass; Ahmed Garhy; iced contributors; Jb Evain and Novell;
@@ -64,14 +76,18 @@ Il2CppInterop remains LGPL-3.0-only. Their licenses permit commercial distributi
 when their conditions are followed. The Il2CppInterop license file also contains
 the incorporated GNU GPL version 3 text.
 
-Every loader ZIP contains the complete modified Doorstop and compatibility source
+The original GitHub loader ZIP contains the complete modified Doorstop and compatibility source
 with build/install scripts in `BepInEx/compatibility/source.zip`. The exact
 unmodified BepInEx and Il2CppInterop source snapshots for the bundled DLLs are
 included in `BepInEx/compatibility/sources/`, together with their source manifest
 and [replacement instructions](licenses/SOURCE-COMPLIANCE.txt). This includes
 the upstream build projects and reference assemblies shipped in those source
 repositories; those references are not this game's executables or extracted
-game code and are not relicensed by this project.
+game code and are not relicensed by this project. Nexus runtime ZIPs contain the
+built runtime and required notices. Their SOURCE-DOWNLOADS.txt and
+licenses/SOURCE-COMPLIANCE.txt provide equivalent access to complete corresponding
+source on GitHub, including the separate native submodule snapshot and maintained
+patches/build inputs. No development source archive is uploaded to Nexus.
 
 Replaceable shared DLLs are used. Users may modify/rebuild the LGPL components
 and replace them with interface-compatible versions. This project imposes no
@@ -102,7 +118,7 @@ game-content commercialization permission.
 ## Release policy
 
 All installable ZIPs include `LICENSE`, this notice and `licenses/`. The loader
-also includes the corresponding source described above. Source archives generated
+also provides corresponding source access as described above. Source archives generated
 from this repository retain the same licensing files. Large dependency archives
 and generated game files stay out of Git. `tools/prepare-licenses.py` verifies
 the committed notices and retrieves only the checksum-pinned corresponding source

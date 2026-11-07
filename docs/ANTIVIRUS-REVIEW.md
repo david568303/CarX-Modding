@@ -3,6 +3,66 @@
 The installable CarX Drift Racing Online 2 package has a suspected false positive,
 not a vendor-confirmed false positive. A low detection count does not establish safety.
 
+## Tested source-build workaround
+
+Development is isolated on `fix/nexus-release-analysis`; `main` and existing GitHub
+releases are unchanged. No support request has been sent on the user's behalf.
+
+Two replacement DLLs completed direct scans on **7 November 2026 at 01:08:29
+Europe/Madrid**, each at **0/71**. Cynet, Microsoft and VBA32 explicitly returned
+`Undetected` in both reports:
+
+| Component | Source/build change | Completed report |
+| --- | --- | --- |
+| UnityDoorstop `winhttp.dll` | Standard static MSVC runtime startup, stack protection, privately named custom CRT helpers, truthful version resources, and defined file-I/O results; existing loader/discovery behavior retained | [722170e9…](https://www.virustotal.com/gui/file/722170e9d492f75f16ada1068eabdcdc06ed2fbe90154d2ceca5832562ef1588/detection) |
+| `Il2CppInterop.Common.dll` | Unchanged upstream 1.5.3 C# source rebuilt with the installed SDK and deterministic upstream project settings | [1928f201…](https://www.virustotal.com/gui/file/1928f201590f2e2b6827adba98191d253e5074769e93405a20f254e4efa984e6/detection) |
+
+The third replacement, Capstone native **5.0.9**, completed at **0/71** on 7 November
+at **01:38:27 Europe/Madrid**, with Cynet, Microsoft and VBA32 explicitly
+`Undetected`: [af3a1ae9…](https://www.virustotal.com/gui/file/af3a1ae919c7ba700c42e5f133ffa022dfa3f05fa79672865c790243e769e727/detection).
+It uses the current maintenance source, a defined immediate-size output on lookup
+miss, truthful Windows version resources, stack protection, CFG, ASLR/DEP and CET
+compatibility. All architectures, detailed decoding and allocator callbacks remain
+enabled. Its full API/header layout and all 20 exports/ordinals match official 5.0.9;
+9,270 decoding cases, 167,424 instruction-detail records and 23 upstream examples
+match that release. Custom allocator and skip-data callbacks also pass with CFG.
+The upstream 5.0.9 BSD/LLVM/Python license texts are byte-identical to the retained
+5.0.6 notices. The unchanged Python bindings remain version 5.0.6; the native version
+is disclosed separately in package provenance.
+
+The native fork revision is
+[`7316db427ac7cbc5962cbfa5046de7a342345ee6`](https://github.com/david568303/UnityDoorstop/commit/7316db427ac7cbc5962cbfa5046de7a342345ee6).
+Its rebuilt DLL preserves all 87 exports and ordinals. Synthetic host tests passed
+110 forwarding/load/unload/rebase checks and 57 enabled import-hook checks against
+both original and rebuilt loaders, without invoking the game or CoreCLR.
+Common preserves 500 checked public API/layout/attribute contracts and its assembly
+identity/references; 16 behavioral checks passed for each build using the bundled
+CoreCLR 6.0.7. Independent source builds reproduced both scanned hashes. Embedded
+managed debug information does not require external PDB files.
+
+Earlier Capstone candidates were rejected. A complete 5.0.6 source build with an immediate-size
+initialization correctness patch passed the full comparison corpus but still
+received [1/71 from Cynet](https://www.virustotal.com/gui/file/efba1c5bd1c702007306d09b575b861bbbffec54e53eee27ec3840180748988f/detection).
+The unmodified official 5.0.9 Windows DLL also completed at
+[1/71 from Cynet](https://www.virustotal.com/gui/file/76958e18380023a68fd1714fa2e01c594cc6db1955a07ad6937b66e66dc5d6c3/detection)
+on 7 November at 01:27:37 Europe/Madrid. Neither is shipped in the workaround.
+The ordinary Nexus packager is unchanged; a separate source-build profile pins the
+three tested replacements, updates the wheel RECORD and package manifest, preserves
+the other 249 executable files and existing licenses, and adds MSVC runtime terms.
+
+The final three DLLs passed **42 integration tests with zero skips**. Fresh discovery
+and metadata normalization against each of two preserved native-input fixtures
+produced the same 234 API bindings and expected normalized hashes. An independent
+LibCpp2IL parser checked the metadata table counts and 425,524 / 450,872 names.
+PDB/DIA/symbol access was denied in all four cold pipeline processes, with zero
+attempts. All six original inputs and all staged runtime files remained unchanged.
+These checks did not start the actual game and do not replace an in-game test.
+
+These results show which exact builds receive different scanner verdicts. They do
+not reveal either vendor's private detection rule or establish a particular source
+line as its cause. No security setting is weakened and no interop behavior is
+removed to obtain these results.
+
 ## Follow-up: quarantine and fresh component scans
 
 Nexus runtime file **12**, version **2026.11.05.1**, is now quarantined. Its notice

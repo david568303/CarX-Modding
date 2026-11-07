@@ -1,5 +1,21 @@
 # UnityDoorstop publication diff
 
+The original publication below is retained as history. The 7 November source-build
+work adds commit
+[`7316db427ac7cbc5962cbfa5046de7a342345ee6`](https://github.com/david568303/UnityDoorstop/commit/7316db427ac7cbc5962cbfa5046de7a342345ee6)
+on the isolated `fix/standard-crt-startup` branch. Its incremental diff against
+`ad3edbebd071449c22845c18a12326d49a437c89` is
+[`doorstop-standard-crt.patch`](doorstop-standard-crt.patch), SHA-256
+`8878af1e79ddf9b7eb332380d34660af39ec82de35c061aaa7f4b21f5588a121`.
+This changes six files, with 114 insertions and 26 deletions: normal static MSVC
+startup and stack protection, private CRT helper names, defined file-I/O results,
+and version-resource/build provenance. It retains the original API discovery,
+metadata bootstrap and proxy logic. The source-build DLL reproduces SHA-256
+`722170e9d492f75f16ada1068eabdcdc06ed2fbe90154d2ceca5832562ef1588`.
+Existing upstream `fclose` and `ReadFile` result defects described below are
+corrected by that follow-up. See [the antivirus review](../ANTIVIRUS-REVIEW.md)
+for exact scan and compatibility evidence.
+
 Prepared 2026-10-28 against the original committed clone. The resulting history
 is published at https://github.com/david568303/UnityDoorstop on `carx-compatibility`.
 

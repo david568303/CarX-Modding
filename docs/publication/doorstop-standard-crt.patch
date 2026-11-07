@@ -1,0 +1,262 @@
+diff --git a/CHANGES.md b/CHANGES.md
+index 69d468f..a1a04f9 100644
+--- a/CHANGES.md
++++ b/CHANGES.md
+@@ -1,4 +1,20 @@
+-# Compatibility changes, 2026-10-28
++# Compatibility changes, updated 2026-11-07
++
++## MSVC startup and runtime support, 2026-11-07
++
++- Use the normal static MSVC runtime entry point with stack-cookie protection in
++  the maintained Windows build. The startup bridge delegates to the existing
++  `DllEntry`; API discovery, hooks and managed initialization remain intact.
++- Namespace the custom heap, memory and file routines in this build so they do
++  not replace the standard runtime's allocator or file operations. The original
++  freestanding path remains available to the other build configurations.
++- Correct the Win32 `ReadFile` byte-count output type and define the file-close
++  return value.
++- Compile the upstream version-resource template with accurate fork metadata,
++  image checksums, ASLR, high-entropy addressing and non-executable data enabled.
++  The release DLL needs no separate Visual C++ runtime installation or PDB.
++
++## Original compatibility implementation, 2026-10-28
+ 
+ This fork is based on NeighTools/UnityDoorstop commit
+ `1c3ece1f1e6c20f4aa74d5402baabf8a0098d282`. The upstream GNU LGPL 2.1
+diff --git a/COMPATIBILITY.md b/COMPATIBILITY.md
+index 990433d..52c410a 100644
+--- a/COMPATIBILITY.md
++++ b/COMPATIBILITY.md
+@@ -54,13 +54,20 @@ logging. Generated C, assembly, object files, and the export definition remain
+ under the ignored `build` directory. This custom build path is Windows x64 only.
+ The original upstream xmake build files are retained separately.
+ 
++The maintained script uses normal static MSVC runtime startup and `/GS` stack
++protection. `DOORSTOP_STANDARD_CRT` keeps Doorstop's custom allocation and file
++functions separate from the standard runtime's internal functions. This mode
++does not require users to install Visual Studio or a redistributable runtime.
++Version resources identify the fork; the release build does not need an external
++PDB. A `-BuildRoot` argument can select another development output directory.
++
+ To rebuild the integration package, use its documented build scripts and point
+ its native source input at this fork. The native DLL alone does not supply the
+ API discovery helper, metadata bootstrap, BepInEx, Python, or CoreCLR.
+ 
+ ## License and distribution
+ 
+-The six modified or added native C/header files carry dated modification
++Modified or added native C/header files carry dated modification
+ notices. [CHANGES.md](CHANGES.md) lists the changes. Preserve the original license
+ and copyright notices and provide the corresponding modified source when
+ redistributing the native binary under the applicable LGPL terms. This fork
+diff --git a/build-msvc.ps1 b/build-msvc.ps1
+index 15f77be..2dec152 100644
+--- a/build-msvc.ps1
++++ b/build-msvc.ps1
+@@ -1,16 +1,20 @@
+-param([switch]$Release)
++# Standard MSVC startup, stack protection and version resources, 2026-11-07.
++# GNU LGPL 2.1; see LICENSE. Existing compiler tools are used without installation.
++param([switch]$Release, [string]$BuildRoot)
++$SourceRoot = $PSScriptRoot
++if (-not $BuildRoot) { $BuildRoot = Join-Path $SourceRoot 'build/msvc-x64' }
+ $ErrorActionPreference = 'Stop'
+-$sourceRoot = $PSScriptRoot
+-$buildRoot = Join-Path $sourceRoot 'build/msvc-x64'
+-New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
++$SourceRoot = (Resolve-Path -LiteralPath $SourceRoot).Path
++$BuildRoot = [IO.Path]::GetFullPath($BuildRoot)
++New-Item -ItemType Directory -Path $BuildRoot -Force | Out-Null
+ $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+ $vsRoot = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+-if (-not $vsRoot) { throw 'Existing Visual Studio C++ build tools were not found. No compiler will be installed.' }
++if (-not $vsRoot) { throw 'Existing Visual Studio C++ tools not found; no compiler will be installed.' }
+ Import-Module (Join-Path $vsRoot 'Common7/Tools/Microsoft.VisualStudio.DevShell.dll')
+ Enter-VsDevShell -VsInstallPath $vsRoot -SkipAutomaticLocation -DevCmdArguments '-arch=x64 -host_arch=x64' | Out-Null
+ 
+-# Assembly tail jumps preserve all native arguments and the return address.
+-$functions = @(Get-Content -LiteralPath (Join-Path $sourceRoot 'src/windows/proxy/proxylist.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
++# Preserve the maintained x64 proxy's argument-transparent assembly tail jumps.
++$functions = @(Get-Content -LiteralPath (Join-Path $SourceRoot 'src/windows/proxy/proxylist.txt') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+ $c = [Collections.Generic.List[string]]::new()
+ $asm = [Collections.Generic.List[string]]::new()
+ $def = [Collections.Generic.List[string]]::new()
+@@ -18,7 +22,7 @@ $c.Add('#include <windows.h>')
+ $asm.Add('option casemap:none')
+ $def.Add('EXPORTS')
+ foreach ($fn in $functions) {
+-    if ($fn -notmatch '^[A-Za-z_][A-Za-z_0-9]*$') { throw 'Invalid upstream proxy function name.' }
++    if ($fn -notmatch '^[A-Za-z_][A-Za-z_0-9]*$') { throw 'Invalid upstream proxy name.' }
+     $c.Add("FARPROC proxy_$fn;")
+     $asm.Add("EXTERN proxy_${fn}:QWORD")
+     $def.Add("$fn=exp_$fn")
+@@ -33,26 +37,48 @@ foreach ($fn in $functions) {
+     $asm.Add("exp_$fn ENDP")
+ }
+ $asm.Add('END')
+-$c | Set-Content -LiteralPath (Join-Path $buildRoot 'proxy.c') -Encoding ascii
+-$asm | Set-Content -LiteralPath (Join-Path $buildRoot 'proxy.asm') -Encoding ascii
+-$def | Set-Content -LiteralPath (Join-Path $buildRoot 'doorstop.def') -Encoding ascii
++$c | Set-Content -LiteralPath (Join-Path $BuildRoot 'proxy.c') -Encoding ascii
++$asm | Set-Content -LiteralPath (Join-Path $BuildRoot 'proxy.asm') -Encoding ascii
++$def | Set-Content -LiteralPath (Join-Path $BuildRoot 'doorstop.def') -Encoding ascii
+ 
+-Push-Location $buildRoot
++# The maintained MSVC path omitted upstream's version resource. Restore it using
++# the upstream template, with truthful identification of the modified project.
++$info = Get-Content -LiteralPath (Join-Path $SourceRoot 'info.lua') -Raw
++$values = @{ NAME='Doorstop'; DESCRIPTION='UnityDoorstop compatibility loader for CarX Drift Racing Online 2'; ORGANIZATION='NeighTools / CarX-Modding'; RELEASE='-CarX-compatibility' }
++foreach ($field in @('MAJOR','MINOR','PATCH')) {
++    if ($info -notmatch ($field.ToLowerInvariant() + '\s*=\s*(\d+)')) { throw "Upstream version is missing $field" }
++    $values[$field] = $Matches[1]
++}
++$resource = Get-Content -LiteralPath (Join-Path $SourceRoot 'src/windows/build_tools/info.rc.in') -Raw
++foreach ($field in $values.Keys) { $resource = $resource.Replace(('${' + $field + '}'), [string]$values[$field]) }
++if ($resource -match '\$\{') { throw 'An upstream resource field was not expanded.' }
++$resource | Set-Content -LiteralPath (Join-Path $BuildRoot 'info.rc') -Encoding ascii
++
++Push-Location $BuildRoot
+ try {
+     & ml64.exe /nologo /c /Fo'proxy_asm.obj' 'proxy.asm'
+     if ($LASTEXITCODE -ne 0) { throw 'Proxy assembly build failed.' }
+-    $sources = @('src/windows/*.c', 'src/*.c', 'src/config/*.c', 'src/util/*.c', 'src/runtimes/*.c') | ForEach-Object {
+-        Get-ChildItem -Path (Join-Path $sourceRoot $_) -File | ForEach-Object { $_.FullName }
++    & rc.exe /nologo /fo'info.res' 'info.rc'
++    if ($LASTEXITCODE -ne 0) { throw 'Version resource compilation failed.' }
++    $sources = @('src/windows/*.c','src/*.c','src/config/*.c','src/util/*.c','src/runtimes/*.c') | ForEach-Object {
++        Get-ChildItem -Path (Join-Path $SourceRoot $_) -File | ForEach-Object { $_.FullName }
+     }
+-    $compileArgs = @('/nologo','/c','/O1','/Ob2','/GS-','/MT','/GL-','/DUNICODE','/D_UNICODE','/W3')
++    # Preserve loader code generation; use standard static CRT startup and /GS.
++    # Custom heap/file routines are namespaced, keeping allocation ownership unchanged.
++    $compileArgs = @('/nologo','/c','/O1','/Ob2','/GS','/MT','/GL-','/DUNICODE','/D_UNICODE','/DDOORSTOP_STANDARD_CRT','/W3')
+     if (-not $Release) { $compileArgs += '/DVERBOSE=1' }
+     & cl.exe @compileArgs @sources 'proxy.c'
+-    if ($LASTEXITCODE -ne 0) { throw 'Doorstop compilation failed.' }
+-    $objects = @($sources | ForEach-Object { Join-Path $buildRoot ([IO.Path]::GetFileNameWithoutExtension($_) + '.obj') })
+-    $objects += @((Join-Path $buildRoot 'proxy.obj'), (Join-Path $buildRoot 'proxy_asm.obj'))
+-    & link.exe /nologo /dll /nodefaultlib /entry:DllEntry /dynamicbase /out:winhttp.dll /def:doorstop.def @objects kernel32.lib shell32.lib user32.lib
+-    if ($LASTEXITCODE -ne 0) { throw 'Doorstop linking failed.' }
++    if ($LASTEXITCODE -ne 0) { throw 'Native source compilation failed.' }
++    $objects = @($sources | ForEach-Object { Join-Path $BuildRoot ([IO.Path]::GetFileNameWithoutExtension($_) + '.obj') })
++    $objects += @((Join-Path $BuildRoot 'proxy.obj'),(Join-Path $BuildRoot 'proxy_asm.obj'))
++    # /Brepro enables reproducible PE provenance; normal Windows mitigations and
++    # an image checksum remain enabled. No external PDB or signing key is needed.
++    & link.exe /nologo /dll /dynamicbase /highentropyva /nxcompat /Brepro /release /out:winhttp.dll /def:doorstop.def /opt:ref /opt:icf @objects info.res kernel32.lib shell32.lib user32.lib
++    if ($LASTEXITCODE -ne 0) { throw 'Native DLL linking failed.' }
+     Set-Content -LiteralPath '.doorstop_version' -Value '4.6.0-binary-api-compatibility' -Encoding ascii
++    $built = Join-Path $BuildRoot 'winhttp.dll'
++    [ordered]@{sourceRoot=$SourceRoot; visualStudio=$vsRoot; path=$built; sha256=(Get-FileHash -LiteralPath $built -Algorithm SHA256).Hash.ToLowerInvariant(); bytes=(Get-Item -LiteralPath $built).Length} | ConvertTo-Json | Set-Content -LiteralPath 'build-result.json' -Encoding utf8
+ } finally { Pop-Location }
++
+ Write-Host "Built x64 Doorstop with $vsRoot"
+-Write-Host (Join-Path $buildRoot 'winhttp.dll')
++Write-Host (Join-Path $BuildRoot 'winhttp.dll')
+diff --git a/src/windows/crt_entrypoint.c b/src/windows/crt_entrypoint.c
+new file mode 100644
+index 0000000..fc42a4e
+--- /dev/null
++++ b/src/windows/crt_entrypoint.c
+@@ -0,0 +1,11 @@
++/*
++ * Standard MSVC static CRT startup bridge, 2026-11-07. LGPL 2.1; see LICENSE.
++ * The normal CRT entry point initializes security cookies before loader code.
++ */
++#if defined(_MSC_VER) && defined(DOORSTOP_STANDARD_CRT)
++#include <windows.h>
++BOOL WINAPI DllEntry(HINSTANCE instance, DWORD reason, LPVOID reserved);
++BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved) {
++    return DllEntry(instance, reason, reserved);
++}
++#endif
+diff --git a/src/windows/wincrt.c b/src/windows/wincrt.c
+index 59bc7d4..71bd424 100644
+--- a/src/windows/wincrt.c
++++ b/src/windows/wincrt.c
+@@ -6,11 +6,14 @@
+ #include "wincrt.h"
+ #include "il2cpp_resolver.h"
+ 
++/* Standard-CRT ownership separation and Win32 result types updated 2026-11-07. */
+ static HANDLE h_heap;
+ 
+ void init_crt() { h_heap = GetProcessHeap(); }
+ 
++#if !defined(DOORSTOP_STANDARD_CRT)
+ #pragma function(memset)
++#endif
+ void *memset(void *dst, int c, size_t n) {
+     char *d = dst;
+     while (n--)
+@@ -18,7 +21,9 @@ void *memset(void *dst, int c, size_t n) {
+     return dst;
+ }
+ 
++#if !defined(DOORSTOP_STANDARD_CRT)
+ #pragma function(memcpy)
++#endif
+ void *memcpy(void *dst, const void *src, size_t n) {
+     char *d = dst;
+     const char *s = src;
+@@ -98,12 +103,12 @@ void *fopen(char_t *filename, const char_t *mode) {
+ }
+ 
+ size_t fread(void *ptr, size_t size, size_t count, void *stream) {
+-    size_t read_size = 0;
+-    ReadFile(stream, ptr, size * count, &read_size, NULL);
++    DWORD read_size = 0;
++    ReadFile(stream, ptr, (DWORD)(size * count), &read_size, NULL);
+     return read_size;
+ }
+ 
+-int fclose(void *stream) { CloseHandle(stream); }
++int fclose(void *stream) { return CloseHandle(stream) ? 0 : -1; }
+ 
+ #ifndef UNICODE
+ LPSTR *CommandLineToArgvA(LPCSTR cmd_line, int *argc) {
+diff --git a/src/windows/wincrt.h b/src/windows/wincrt.h
+index c1d056d..13904e8 100644
+--- a/src/windows/wincrt.h
++++ b/src/windows/wincrt.h
+@@ -9,6 +9,25 @@
+ #include "../util/util.h"
+ #include <windows.h>
+ 
++#if defined(_MSC_VER) && defined(DOORSTOP_STANDARD_CRT)
++/* Static MSVC runtime startup support, 2026-11-07 (LGPL 2.1).
++ * Keep Doorstop's custom heap/file routines private to this implementation.
++ * They must never interpose on the standard runtime's own allocator or FILEs.
++ */
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#define memset doorstop_memset
++#define memcpy doorstop_memcpy
++#define malloc doorstop_malloc
++#define calloc doorstop_calloc
++#define free doorstop_free
++#define setenv doorstop_setenv
++#define fopen doorstop_fopen
++#define fread doorstop_fread
++#define fclose doorstop_fclose
++#endif
++
+ // Fix for MinGW's headers
+ #if UNICODE
+ #define GetFinalPathNameByHandle GetFinalPathNameByHandleW
+@@ -21,10 +40,14 @@ extern void init_crt();
+ #define STR_LEN(str) (sizeof(str) / sizeof((str)[0]))
+ 
+ extern void *memset(void *dst, int c, size_t n);
++#if !defined(DOORSTOP_STANDARD_CRT)
+ #pragma intrinsic(memset)
++#endif
+ 
+ extern void *memcpy(void *dst, const void *src, size_t n);
++#if !defined(DOORSTOP_STANDARD_CRT)
+ #pragma intrinsic(memcpy)
++#endif
+ 
+ extern size_t strlen_wide(const char_t *str);
+ #define strlen strlen_wide

@@ -38,6 +38,7 @@ Use PowerShell 7, existing Visual Studio C++ x64 build tools and a .NET SDK with
 .NET 6 targeting pack. The pure test programs use the .NET 10 SDK. Scripts do not install
 a compiler. Provisioning downloads pinned, hash-verified BepInEx/Python/dependency inputs.
 See [third-party notices](THIRD-PARTY-NOTICES.md) for exact dependency versions and source.
+See [source-built DLLs and runtime packaging](docs/SOURCE-BUILDS.md) for the reviewed source-build profile.
 
 Original game binaries, metadata and generated interop assemblies are not distributed
 in the repository or release assets.
