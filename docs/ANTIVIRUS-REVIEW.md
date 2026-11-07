@@ -74,10 +74,18 @@ license files, three added MSVC notices, the wheel RECORD and immutable source
 links. Fresh extraction passed isolated Python imports and decoding from an
 unrelated working directory, with all runtime files remaining unchanged.
 
-This new ZIP has **not been uploaded to Nexus**. Its authenticated file editor
-failed to load a required JavaScript chunk and exposed no functioning upload
-controls, including after reload. The old Nexus file's quarantine status does not
-describe a Nexus scan of this new ZIP. No support message was sent.
+This exact ZIP is now uploaded to Nexus as **file 15**, version **2026.11.07.1**:
+[current Nexus file](https://www.nexusmods.com/carxdriftracingonline2/mods/11?tab=files&file_id=15).
+The public page records **7 November 2026, 02:05 Europe/Madrid**, with a displayed
+size of **45.9 MB**. It currently states: **“This file is not yet available for
+download. Virus scanning is in progress.”** Nexus has not yet cleared the file;
+its pending scan is separate from the completed VirusTotal reports above.
+Previous runtime file **12** was archived, leaving only this runtime in Main Files.
+No source archive was uploaded, and no support message was sent.
+
+The saved Nexus changelog is:
+
+> Rebuilt Doorstop and Common, and updated Capstone to address antivirus false positives. Compatibility checks passed.
 
 These results show which exact builds receive different scanner verdicts. They do
 not reveal either vendor's private detection rule or establish a particular source
@@ -86,11 +94,12 @@ removed to obtain these results.
 
 ## Follow-up: quarantine and fresh component scans
 
-Nexus runtime file **12**, version **2026.11.05.1**, is now quarantined. Its notice
+Earlier Nexus runtime file **12**, version **2026.11.05.1**, was quarantined and is
+now archived after replacement by file 15. Its notice
 lists executable file types, scanner detections and nested archives as possible
 reasons; it does not identify the precise failing check. The verified ZIP contains
-no nested archives. Only the runtime is active on the Nexus Files page; no source
-download has been restored there.
+no nested archives. The current active runtime is file 15, described above; no
+source download has been restored on the Nexus Files page.
 
 All three detected members were directly rescanned on **7 November 2026**:
 
@@ -142,19 +151,20 @@ These are observations of reports with different dates and engine coverage, not 
 simultaneous benchmark. Archive scans do not guarantee inspection of every member.
 Nexus's own scan is separate from the completed VirusTotal submission above.
 
-## What was established
+## What was established for the earlier packages
 
-The 41,472-byte Common DLL is byte-for-byte identical in the official BepInEx ZIP,
-the published GitHub runtime, and the new Nexus runtime. All 224 existing BepInEx
-core/CoreCLR files match the official distribution. The Nexus repack preserves all
-252 executable files from the audited GitHub build.
+The earlier 41,472-byte Common DLL is byte-for-byte identical in the official
+BepInEx ZIP, the published GitHub runtime, and Nexus runtime 2026.11.05.1. All 224
+existing BepInEx core/CoreCLR files match the official distribution. That layout-only
+repack preserved all 252 executable files from the audited GitHub build; the later
+source-build profile above replaces three of them.
 
 This establishes that the directly detected Common bytes are upstream bytes. It
 does not establish that Common explains every archive verdict, that our other
 components cannot receive detections, or that the vendor's verdict is erroneous.
-The current native `winhttp.dll` did not have a completed direct report during the
+The earlier published native `winhttp.dll` did not have a completed direct report during the
 initial review; its empty results panel was not a clean scan. The follow-up above
-now confirms Cynet also detects the current native build, separately from VBA32.
+confirms Cynet detected that earlier native build, separately from VBA32.
 
 ## Source review
 
