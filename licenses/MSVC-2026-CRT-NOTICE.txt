@@ -1,0 +1,52 @@
+MICROSOFT VISUAL C++ COMPILED RUNTIME NOTICE
+
+Component: Microsoft Visual C++ release C/C++ runtime object code, statically
+linked by the installed Visual Studio Community 2026 MSVC x64 toolchain.
+Copyright Microsoft Corporation. Microsoft retains its rights in that code.
+
+The source-built winhttp.dll and Capstone capstone.dll use the standard static
+release runtime (/MT). Runtime object code is linked into those DLLs. This change
+adds no separate Microsoft Visual C++ runtime DLL or redistributable installer.
+The pre-existing bundled .NET/CoreCLR components retain their separate notices.
+
+Original project integration code retains the project's MIT license. UnityDoorstop
+source retains its LGPL terms, and Capstone source retains its BSD/LLVM notices.
+Microsoft runtime components remain governed by Microsoft's applicable terms;
+the project's MIT license does not relicense Microsoft code.
+
+Microsoft's Visual Studio developer terms describe Distributable Code, its
+redistribution rights, requirements and restrictions. The current distributable
+list is available at:
+  https://aka.ms/vs/18/redistribution
+
+The following complete public Microsoft terms are retained as plain-text reference
+copies alongside this notice:
+  MSVC-2026-Community-LICENSE.txt
+  MSVC-2026-Runtime-LICENSE.txt
+
+Their original wording, paragraph order, numbered clauses and cross-references
+are retained. Automatic Word list labels are expanded from the source documents'
+numbering and paragraph styles; Symbol/Wingdings bullets use ordinary Unicode
+bullet characters. Redistribution remains subject to the applicable Microsoft
+terms and distributable list, alongside the other component licenses.
+
+OFFICIAL SOURCE AND PROVENANCE
+
+Microsoft license catalog:
+  https://visualstudio.microsoft.com/license-terms/
+
+Microsoft Visual Studio Community 2026 terms:
+  https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual_Studio_2026-License-Community_ENU.docx
+  Original DOCX SHA-256:
+  02ac07637f4a513a807cd3721c7620433fc483bc049d25784b0c10c54b05e1fb
+  Publisher document identifier: VS2026_Comm_ENU.1033
+
+Microsoft Visual C++ V14 Redistributable and Runtime terms:
+  https://visualstudio.microsoft.com/wp-content/uploads/2025/10/Visual-C-V14-License-Redistributable_and_Runtime_ENU.docx
+  Original DOCX SHA-256:
+  08651651a7602fc7c0e2763de0fde1ff9f868df2780597cd1775ee9d6441c783
+  Publisher document identifier: Cpp_v14_ENU.1033
+
+The source documents are identified by Microsoft's catalog under Visual Studio
+2026 and retain their published "Last Updated: October 1, 2025" dates. The DOCX
+archives are represented by their complete plain text in this package.
