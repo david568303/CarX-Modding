@@ -14,7 +14,8 @@ Push-Location $out
 try {
     & cl.exe /nologo /LD /W4 /O2 (Join-Path $PSScriptRoot 'runtime_fixture.c') /Fe:GameAssembly.dll /Fo:runtime_fixture.obj /link ("/DEF:"+(Join-Path $PSScriptRoot 'runtime_fixture.def')) /IMPLIB:fixture.lib /OPT:NOICF
     if($LASTEXITCODE -ne 0){throw 'Native test fixture build failed.'}
-    & cl.exe /nologo /W4 /O2 (Join-Path $PSScriptRoot 'resolver_tests.c') (Join-Path $projectRoot 'src/Doorstop/src/windows/il2cpp_resolver.c') /Fe:resolver_tests.exe
+    $native = Join-Path $projectRoot 'src/Doorstop/src/windows'
+    & cl.exe /nologo /W4 /O2 (Join-Path $PSScriptRoot 'resolver_tests.c') (Join-Path $native 'il2cpp_resolver.c') (Join-Path $native 'map_refresh.c') /Fe:resolver_tests.exe
     if($LASTEXITCODE -ne 0){throw 'Native resolver test build failed.'}
 } finally { Pop-Location }
 Copy-Item -LiteralPath (Join-Path $out 'GameAssembly.dll') -Destination (Join-Path $out 'OtherRuntime.dll') -Force
