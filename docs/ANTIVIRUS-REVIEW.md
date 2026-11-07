@@ -58,6 +58,27 @@ PDB/DIA/symbol access was denied in all four cold pipeline processes, with zero
 attempts. All six original inputs and all staged runtime files remained unchanged.
 These checks did not start the actual game and do not replace an in-game test.
 
+The final installable runtime is
+`CarX-Drift-Racing-Online-2-BepInEx-Runtime-2026.11.07.1.zip`, 48,112,884 bytes,
+SHA-256 `7ba02488cc945fb7ff99403e498568cdc77d43ca7827f7316b0c33293a1e8991`.
+Its [completed archive report](https://www.virustotal.com/gui/file/7ba02488cc945fb7ff99403e498568cdc77d43ca7827f7316b0c33293a1e8991/detection)
+is **0/65**, analysed 7 November at **01:51:42 Europe/Madrid**. Cynet, Microsoft and
+VBA32 returned `Undetected`; ClamAV timed out, ALYac and Trustlook failed, and seven
+engines could not process the archive type. VirusTotal also warned that this
+multi-file archive exceeds its 3 MB archive-inspection limit. The outer result is
+therefore separate from the completed 0/71 direct scans of each replacement DLL.
+
+Independent final-ZIP verification checked all 925 files and 924 manifest records,
+all three exact scanned hashes, 249 unchanged executable files, the 29 preserved
+license files, three added MSVC notices, the wheel RECORD and immutable source
+links. Fresh extraction passed isolated Python imports and decoding from an
+unrelated working directory, with all runtime files remaining unchanged.
+
+This new ZIP has **not been uploaded to Nexus**. Its authenticated file editor
+failed to load a required JavaScript chunk and exposed no functioning upload
+controls, including after reload. The old Nexus file's quarantine status does not
+describe a Nexus scan of this new ZIP. No support message was sent.
+
 These results show which exact builds receive different scanner verdicts. They do
 not reveal either vendor's private detection rule or establish a particular source
 line as its cause. No security setting is weakened and no interop behavior is
