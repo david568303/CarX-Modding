@@ -29,12 +29,15 @@ jobs:
       - name: Managed bootstrap tests
         shell: pwsh
         run: |
-          dotnet run --project tests/MetadataBootstrap -c Release
+          $runtime = ./tools/prepare-bepinex.ps1
+          $core = Join-Path $runtime 'BepInEx/core'
+          dotnet run --project tests/MetadataBootstrap -c Release "-p:BepInExCoreDirectory=$core"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Build loader and test native resolver
         shell: pwsh
         run: |
-          ./tools/build-doorstop.ps1 -Release
+          $capstoneRoot = Join-Path $env:RUNNER_TEMP 'carx-capstone'
+          ./tools/build-capstone.ps1 -BuildRoot $capstoneRoot | Out-Host
+          $capstone = Get-Content "$capstoneRoot/build-provenance.json" -Raw | ConvertFrom-Json
+          ./tools/build.ps1 -CapstoneIncludeDir (Join-Path $capstone.sourceRoot 'include')
           ./tests/native/run.ps1
-          dotnet build src/MetadataBootstrap -c Release --nologo
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }

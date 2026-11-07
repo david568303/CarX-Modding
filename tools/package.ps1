@@ -1,97 +1,82 @@
 param(
-    [switch]$StageOnly,
+    [Parameter(Mandatory)][ValidatePattern('^[0-9]+(\.[0-9]+){2,3}$')][string]$Version,
+    [Parameter(Mandatory)][string]$CapstoneDll,
+    [Parameter(Mandatory)][string]$DobbyDll,
+    [Parameter(Mandatory)][string]$Il2CppCommonDll,
     [string]$Destination
 )
+
+Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
+$doorstopRoot = Join-Path $projectRoot 'src/Doorstop'
 . (Join-Path $PSScriptRoot 'package-licenses.ps1')
-$portablePython = Join-Path $projectRoot '.work/vendor/python-embed/python.exe'
-if (-not (Test-Path -LiteralPath $portablePython)) { & (Join-Path $PSScriptRoot 'prepare-python.ps1') }
-& $portablePython -B (Join-Path $PSScriptRoot 'prepare-licenses.py')
-if ($LASTEXITCODE -ne 0) { throw 'Pinned licenses or corresponding upstream source verification failed.' }
-$workRoot = Join-Path $projectRoot '.work/package'
-$releaseRoot = Join-Path $projectRoot 'release'
-New-Item -ItemType Directory -Path $workRoot,$releaseRoot -Force | Out-Null
-if (-not $Destination) { $Destination = Join-Path $releaseRoot 'BepInEx-Doorstop-NoPDB.zip' }
-$zipPath = [IO.Path]::GetFullPath($Destination)
-if ([IO.Path]::GetExtension($zipPath) -ne '.zip') { throw 'Destination must be a ZIP file.' }
-New-Item -ItemType Directory -Path (Split-Path $zipPath -Parent) -Force | Out-Null
-$stageRoot = Join-Path $workRoot ('stage-' + [Guid]::NewGuid().ToString('N'))
-$sourceStage = Join-Path $workRoot ('source-' + [Guid]::NewGuid().ToString('N'))
-New-Item -ItemType Directory -Path $stageRoot,$sourceStage -Force | Out-Null
+Add-Type -AssemblyName System.IO.Compression
 
-function Copy-Into([string]$Source, [string]$Base, [string]$RelativePath) {
-    if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) { throw "Required package input is missing: $Source" }
-    $target = [IO.Path]::GetFullPath((Join-Path $Base $RelativePath))
-    if (-not $target.StartsWith($Base + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) {
-        throw 'A package destination escaped its staging directory.'
-    }
+function Get-Sha256([string]$Path) {
+    (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-Revision([string]$Directory) {
+    $revision = & git -C $Directory rev-parse HEAD
+    if ($LASTEXITCODE -or $revision -notmatch '^[0-9a-f]{40}$') { throw "Cannot identify source in $Directory." }
+    $changes = @(& git -C $Directory status --porcelain)
+    if ($LASTEXITCODE -or $changes.Count) { throw "Commit source changes before packaging: $Directory" }
+    $revision
+}
+
+function Add-PackageFile([string]$Source, [string]$RelativePath) {
+    if (-not (Test-Path -LiteralPath $Source -PathType Leaf)) { throw "Missing package input: $Source" }
+    $target = Join-Path $stageRoot $RelativePath
     New-Item -ItemType Directory -Path (Split-Path $target -Parent) -Force | Out-Null
     Copy-Item -LiteralPath $Source -Destination $target -Force
 }
 
-function Copy-Tree([string]$Source, [string]$Base, [string]$RelativePath, [switch]$SourceOnly) {
-    $treeRoot = (Resolve-Path -LiteralPath $Source).Path
-    foreach ($entry in Get-ChildItem -LiteralPath $treeRoot -Recurse -Force) {
-        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "A package source contains a link: $($entry.FullName)" }
-        if ($entry.PSIsContainer) { continue }
-        $relative = [IO.Path]::GetRelativePath($treeRoot, $entry.FullName)
-        if ($relative -match '(^|[\\/])(__pycache__|\.git)([\\/]|$)' -or $entry.Extension -eq '.pyc') { continue }
-        if ($entry.Name -match '^pdbsymbols\.') { continue }
-        if ($SourceOnly -and ($relative -match '(^|[\\/])(bin|obj)([\\/]|$)' -or $entry.Extension -in @('.obj','.pdb','.exe','.dll'))) { continue }
-        Copy-Into $entry.FullName $Base (Join-Path $RelativePath $relative)
+function Add-PackageTree([string]$Source, [string]$RelativePath) {
+    foreach ($item in Get-ChildItem -LiteralPath $Source -Recurse -Force) {
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Unexpected link in runtime: $($item.FullName)" }
+        if ($item.PSIsContainer -or $item.Extension -eq '.pdb') { continue }
+        Add-PackageFile $item.FullName (Join-Path $RelativePath ([IO.Path]::GetRelativePath($Source, $item.FullName)))
     }
 }
 
-function Write-Zip([string]$Base, [string]$Output, [string[]]$EmptyDirectories = @()) {
-    Add-Type -AssemblyName System.IO.Compression
-    $stream = [IO.File]::Open($Output, [IO.FileMode]::Create, [IO.FileAccess]::ReadWrite, [IO.FileShare]::None)
-    try {
-        $archive = [IO.Compression.ZipArchive]::new($stream, [IO.Compression.ZipArchiveMode]::Create, $true)
-        try {
-            foreach ($directory in $EmptyDirectories) { $archive.CreateEntry($directory.TrimEnd('/') + '/') | Out-Null }
-            foreach ($entry in Get-ChildItem -LiteralPath $Base -Recurse -File -Force) {
-                $relative = [IO.Path]::GetRelativePath($Base, $entry.FullName).Replace('\','/')
-                if ($relative.StartsWith('/') -or $relative -match '(^|/)\.\.(/|$)|^[A-Za-z]:|\\') { throw "Unsafe ZIP path: $relative" }
-                [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $entry.FullName, $relative, [IO.Compression.CompressionLevel]::Optimal) | Out-Null
-            }
-        } finally { $archive.Dispose() }
-    } finally { $stream.Dispose() }
-}
-
-function Get-SourceRevision([string]$Directory) {
-    if (-not (Get-Command git -ErrorAction SilentlyContinue)) { return $null }
-    $top = & git -C $Directory rev-parse --show-toplevel 2>$null
-    if ($LASTEXITCODE -ne 0 -or [IO.Path]::GetFullPath([string]$top) -ine [IO.Path]::GetFullPath($Directory)) { return $null }
-    $commit = & git -C $Directory rev-parse --verify HEAD 2>$null
-    if ($LASTEXITCODE -ne 0 -or [string]$commit -notmatch '^[0-9a-f]{40}$') { return $null }
-    $status = & git -C $Directory status --porcelain
-    return [ordered]@{commit=[string]$commit; dirty=([bool]$status)}
-}
-
-$officialPackage = Join-Path $projectRoot '.work/vendor/BepInEx'
-if (-not (Test-Path -LiteralPath (Join-Path $officialPackage 'BepInEx/core/BepInEx.Unity.IL2CPP.dll'))) {
-    & (Join-Path $PSScriptRoot 'prepare-bepinex.ps1')
-}
-Copy-Tree (Join-Path $officialPackage 'BepInEx/core') $stageRoot 'BepInEx/core'
-Copy-Tree (Join-Path $officialPackage 'dotnet') $stageRoot 'dotnet'
-Copy-Tree (Join-Path $projectRoot '.work/vendor/python-embed') $stageRoot 'BepInEx/compatibility/python'
-foreach ($name in @('winhttp.dll','.doorstop_version')) {
-    Copy-Into (Join-Path $projectRoot ".work/build/doorstop-x64/$name") $stageRoot $name
-}
-Copy-Into (Join-Path $projectRoot '.work/build/MetadataBootstrap/Release/net6.0/BepInEx.MetadataBootstrap.dll') $stageRoot 'BepInEx/core/BepInEx.MetadataBootstrap.dll'
-foreach ($file in Get-ChildItem -LiteralPath (Join-Path $projectRoot 'src/ApiResolver') -File | Where-Object { $_.Extension -in @('.py','.json') -or $_.Name -eq 'requirements.txt' }) {
-    if ($file.Extension -eq '.py' -and (Get-Content -LiteralPath $file.FullName -Raw) -match 'symbolserver\.unity3d\.com|(?:read_pdb_identity|validate_pdb_identity|obtain_pdb)\s*\(|pdbsymbols\.exe|msdia140\.dll') {
-        throw "An obsolete debug-symbol dependency remains in API discovery: $($file.Name)"
+function Assert-RuntimePath([string]$Name) {
+    if ($Name -match '(^|/)\.\.?(/|$)|^/|[:\\]') { throw "Unsafe package path: $Name" }
+    if ($Name -match '(?i)\.(exe|bat|cmd|msi|py|pyc|pyd|whl|zip|rar|7z|pdb|log)$' -or
+        $Name -match '(?i)(^|/)(python|__pycache__|cache|interop|unity-libs|downloads)(/|$)' -or
+        $Name -match '(?i)(^|/)(GameAssembly\.dll|UnityPlayer\.dll|global-metadata\.dat|doorstop_api\.ini|CarX\.BepInEx\.Verification\.dll|python[0-9]*\.dll|python[0-9]*\._pth)$') {
+        throw "Unexpected file in the installable runtime: $Name"
     }
-    Copy-Into $file.FullName $stageRoot ("BepInEx/compatibility/tools/" + $file.Name)
 }
-foreach ($name in @('normalize_metadata.py','infer_native_decoder.py','requirements.txt')) {
-    Copy-Into (Join-Path $projectRoot "src/MetadataNormalizer/$name") $stageRoot "BepInEx/core/scripts/$name"
-}
-New-Item -ItemType Directory -Path (Join-Path $stageRoot 'BepInEx/plugins'),(Join-Path $stageRoot 'BepInEx/patchers') -Force | Out-Null
 
-@'
+$rootRevision = Get-Revision $projectRoot
+$nativeRevision = Get-Revision $doorstopRoot
+$pinnedNative = & git -C $projectRoot rev-parse 'HEAD:src/Doorstop'
+if ($LASTEXITCODE -or $pinnedNative -cne $nativeRevision) { throw 'Commit the matching Doorstop submodule revision first.' }
+
+if (-not $Destination) {
+    $Destination = Join-Path $projectRoot "release/CarX-Drift-Racing-Online-2-BepInEx-Runtime-$Version.zip"
+}
+$zipPath = [IO.Path]::GetFullPath($Destination)
+if ([IO.Path]::GetExtension($zipPath) -ine '.zip' -or (Test-Path -LiteralPath $zipPath)) {
+    throw 'Destination must be a new ZIP file.'
+}
+New-Item -ItemType Directory -Path (Split-Path $zipPath -Parent) -Force | Out-Null
+$stageRoot = Join-Path $projectRoot ('.work/package/stage-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $stageRoot -Force | Out-Null
+
+$official = Join-Path $projectRoot '.work/vendor/BepInEx'
+Add-PackageTree (Join-Path $official 'BepInEx/core') 'BepInEx/core'
+Add-PackageTree (Join-Path $official 'dotnet') 'dotnet'
+Add-PackageFile $Il2CppCommonDll 'BepInEx/core/Il2CppInterop.Common.dll'
+Add-PackageFile $DobbyDll 'BepInEx/core/dobby.dll'
+Add-PackageFile $CapstoneDll 'BepInEx/compatibility/capstone.dll'
+Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/winhttp.dll') 'winhttp.dll'
+Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/.doorstop_version') '.doorstop_version'
+Add-PackageFile (Join-Path $projectRoot '.work/build/MetadataBootstrap/Release/net6.0/BepInEx.MetadataBootstrap.dll') 'BepInEx/core/BepInEx.MetadataBootstrap.dll'
+Add-PackageFile (Join-Path $doorstopRoot 'LICENSE') 'BepInEx/compatibility/licenses/UnityDoorstop-LGPL.txt'
+
+@"
 [General]
 enabled=true
 target_assembly=BepInEx\core\BepInEx.MetadataBootstrap.dll
@@ -104,129 +89,111 @@ corlib_dir=dotnet
 
 [Compatibility]
 auto_refresh=true
-helper_script=BepInEx\compatibility\tools\prepare_api_map.py
-python_executable=BepInEx\compatibility\python\python.exe
-'@ | Set-Content -LiteralPath (Join-Path $stageRoot 'doorstop_config.ini') -Encoding ascii
+"@ | Set-Content -LiteralPath (Join-Path $stageRoot 'doorstop_config.ini') -Encoding ascii
 
-@'
-Extract this ZIP's contents directly beside CarX Drift Racing Online 2.exe,
-then launch the game normally through Steam. No separate launcher is needed.
+@"
+CarX Drift Racing Online 2 - BepInEx runtime $Version
 
-The first launch discovers API bindings directly from the paired game binaries,
-normalizes the game's metadata, and generates BepInEx interop assemblies. This
-can take a few minutes. BepInEx may download Unity base libraries when needed;
-API discovery does not download debug symbols. Later launches reuse caches
-after verifying the game inputs.
+Extract this ZIP directly into the game folder beside
+CarX Drift Racing Online 2.exe and launch normally through Steam.
 
-Install plugins made for BepInEx 6 and Unity IL2CPP in BepInEx\plugins.
-The package does not include a demonstration or verification plugin.
-Loader results appear in BepInEx\LogOutput.log and BepInEx\metadata-bootstrap.log.
+Doorstop discovers the game's Unity APIs and the BepInEx bootstrap prepares
+its metadata automatically. First launch can take several minutes while
+BepInEx generates interop assemblies. No Python installation is required.
 
-The package includes Python and CoreCLR runtimes. It installs no compiler or
-system runtime. Runtime discovery requires no PDB files, DIA SDK, or Visual Studio.
-The metadata normalizer currently supports recognized metadata 38/39 layouts;
-unrecognized future formats are refused rather than guessed.
+Install BepInEx 6 Unity IL2CPP plugins in BepInEx\plugins.
+Logs are in BepInEx\LogOutput.log and BepInEx\metadata-bootstrap.log.
 
-No original game executable, UnityPlayer, GameAssembly, original metadata,
-save files, generated interop assemblies, or old debug-symbol caches are in
-this ZIP. Generated compatibility files stay under BepInEx and the game's
-Doorstop configuration. Existing mod-loader files may be replaced on extraction.
+If upgrading from the Python-based release, the old
+BepInEx\compatibility\python and BepInEx\compatibility\tools folders and the
+old BepInEx\core\scripts\normalize_metadata.py, infer_native_decoder.py
+and requirements.txt are obsolete. Keep your plugins and configuration.
 
-Corresponding modified source and build instructions:
-  BepInEx\compatibility\source.zip
-Unmodified upstream corresponding source archives:
-  BepInEx\compatibility\sources
-Licenses and component notices:
-  LICENSE, THIRD-PARTY-NOTICES.md, licenses
-'@ | Set-Content -LiteralPath (Join-Path $stageRoot 'README.txt') -Encoding ascii
+Source and build instructions: https://github.com/david568303/CarX-Modding
+Exact corresponding sources are in SOURCE-DOWNLOADS.txt.
+Licenses and replacement instructions are in LICENSE,
+THIRD-PARTY-NOTICES.md and licenses/.
+"@ | Set-Content -LiteralPath (Join-Path $stageRoot 'README.txt') -Encoding ascii
 
-# Include all corresponding modified source, without test/build/cache outputs.
-foreach ($directory in @('Doorstop','ApiResolver','MetadataNormalizer','MetadataBootstrap')) {
-    Copy-Tree (Join-Path $projectRoot "src/$directory") $sourceStage "src/$directory" -SourceOnly
-}
-Copy-Into (Join-Path $projectRoot 'Directory.Build.props') $sourceStage 'Directory.Build.props'
-foreach ($name in @('build-doorstop.ps1','prepare-python.ps1','prepare-bepinex.ps1','build.ps1','prepare-licenses.py')) {
-    Copy-Into (Join-Path $projectRoot "tools/$name") $sourceStage "tools/$name"
-}
+$legacyNotices = @('Capstone-Python-BSD.txt', 'Python-LICENSE.txt', 'pefile-MIT.txt')
 foreach ($item in Get-PackageLicenseFiles $projectRoot) {
-    Copy-Into (Join-Path $projectRoot $item.Source) $stageRoot $item.Entry
-    Copy-Into (Join-Path $projectRoot $item.Source) $sourceStage $item.Entry
+    if ([IO.Path]::GetFileName($item.Entry) -in $legacyNotices -or $item.Entry -eq 'licenses/manifest.json') { continue }
+    Add-PackageFile (Join-Path $projectRoot $item.Source) $item.Entry
 }
-$vendorSources = Join-Path $projectRoot '.work/vendor-sources'
-if (-not (Test-Path -LiteralPath $vendorSources -PathType Container) -or
-    @((Get-ChildItem -LiteralPath $vendorSources -File) | Where-Object Name -Match 'BepInEx').Count -eq 0 -or
-    @((Get-ChildItem -LiteralPath $vendorSources -File) | Where-Object Name -Match 'Il2CppInterop').Count -eq 0) {
-    throw 'Required upstream corresponding source archives are missing. Run the bundled Python with tools/prepare-licenses.py first.'
+$licenses = Get-Content -LiteralPath (Join-Path $projectRoot 'licenses/manifest.json') -Raw | ConvertFrom-Json
+$licenses.notices = @($licenses.notices | Where-Object file -NotIn $legacyNotices)
+foreach ($notice in $licenses.notices) {
+    $file = Join-Path $stageRoot ('licenses/' + $notice.file)
+    if ((Get-Sha256 $file) -ne $notice.sha256) { throw "License checksum mismatch: $($notice.file)" }
 }
-Copy-Tree $vendorSources $stageRoot 'BepInEx/compatibility/sources'
-@'
-Corresponding source for the bundled Doorstop/API/metadata compatibility layer.
-No game binaries or generated game metadata are included.
+$licenses | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $stageRoot 'licenses/manifest.json') -Encoding utf8
 
-With the already installed Visual Studio C++ tools and .NET SDK, run from here:
-  .\tools\build-doorstop.ps1
-  dotnet build .\src\MetadataBootstrap\MetadataBootstrap.csproj -c Release
+$sources = @(
+    @{component='CarX compatibility and build scripts'; repository='david568303/CarX-Modding'; commit=$rootRevision},
+    @{component='Modified UnityDoorstop'; repository='david568303/UnityDoorstop'; commit=$nativeRevision},
+    @{component='BepInEx'; repository='BepInEx/BepInEx'; commit='b782da4ac54e1072d2857f4a2f77c80c3ef08005'},
+    @{component='Il2CppInterop'; repository='BepInEx/Il2CppInterop'; commit='dbda1cb353b0f4253345dc45136d170b9e50a5a0'},
+    @{component='Capstone'; repository='capstone-engine/capstone'; commit='022575848782a4801fd150fdbc927effcbca0864'},
+    @{component='Dobby'; repository='BepInEx/Dobby'; commit='888d971214900374edbca6206fad6ded8a2c1311'}
+)
+$sourceText = @('Exact corresponding source for the Windows x64 runtime', '')
+foreach ($source in $sources) {
+    $source.url = "https://codeload.github.com/$($source.repository)/zip/$($source.commit)"
+    $sourceText += @($source.component, $source.url, '')
+}
+$sourceText += @(
+    'The CarX source and UnityDoorstop submodule are separate downloads.',
+    'The CarX repository contains the Capstone and Dobby patches, build scripts and notices.',
+    "Build instructions: https://github.com/david568303/CarX-Modding/blob/$rootRevision/docs/SOURCE-BUILDS.md"
+)
+$sourceText | Set-Content -LiteralPath (Join-Path $stageRoot 'SOURCE-DOWNLOADS.txt') -Encoding ascii
 
-Outputs are placed under .work\build. To use your rebuilt files while the game
-is closed, replace the game's winhttp.dll and BepInEx\core\BepInEx.MetadataBootstrap.dll
-with the corresponding outputs.
-Python sources are used directly: ApiResolver files belong in
-BepInEx\compatibility\tools; MetadataNormalizer Python files belong in
-BepInEx\core\scripts. The build scripts do not install a compiler.
+$manifestName = 'BepInEx/compatibility/package-manifest.json'
+$files = @(foreach ($item in Get-ChildItem -LiteralPath $stageRoot -File -Recurse -Force | Sort-Object FullName) {
+    $name = [IO.Path]::GetRelativePath($stageRoot, $item.FullName).Replace('\','/')
+    Assert-RuntimePath $name
+    [ordered]@{path=$name; length=$item.Length; sha256=(Get-Sha256 $item.FullName)}
+})
+$required = @(
+    'LICENSE', 'THIRD-PARTY-NOTICES.md', 'SOURCE-DOWNLOADS.txt', 'doorstop_config.ini', 'winhttp.dll',
+    'BepInEx/compatibility/capstone.dll', 'BepInEx/core/BepInEx.MetadataBootstrap.dll',
+    'BepInEx/core/BepInEx.Unity.IL2CPP.dll', 'BepInEx/core/Iced.dll', 'dotnet/coreclr.dll'
+)
+foreach ($name in $required) {
+    if ($name -cnotin $files.path) { throw "Missing required runtime file: $name" }
+}
+[ordered]@{
+    format=1; version=$Version; profile='python-free-runtime'
+    sourceRevision=@{commit=$rootRevision; dirty=$false}
+    doorstopRevision=@{commit=$nativeRevision; dirty=$false}
+    correspondingSources=$sources
+    initialApiMapIncluded=$false; testPluginsIncluded=$false; files=$files
+} | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $stageRoot $manifestName) -Encoding utf8
 
-The portable Python preparation script downloads the pinned official runtime
-and pinned pefile/capstone wheels and checks their SHA-256 values. No host
-Python packages or compiler downloads are used. The application ZIP already
-includes this runtime. prepare-bepinex.ps1 obtains the pinned official loader.
-
-UnityDoorstop is licensed under LGPL 2.1. Its license and original notices
-are in src\Doorstop\LICENSE. The modified Doorstop source is complete here.
-The remaining upstream BepInEx/runtime components are supplied unmodified.
-See THIRD-PARTY-NOTICES.md and licenses for component terms. Exact upstream
-source archives are alongside this ZIP in BepInEx/compatibility/sources.
-'@ | Set-Content -LiteralPath (Join-Path $sourceStage 'BUILD.txt') -Encoding ascii
-$sourceZip = Join-Path $stageRoot 'BepInEx/compatibility/source.zip'
-Write-Zip $sourceStage $sourceZip
-Copy-Into (Join-Path $projectRoot 'src/Doorstop/LICENSE') $stageRoot 'BepInEx/compatibility/licenses/UnityDoorstop-LGPL.txt'
-
-$manifest = foreach ($entry in Get-ChildItem -LiteralPath $stageRoot -Recurse -File -Force) {
-    $relative = [IO.Path]::GetRelativePath($stageRoot, $entry.FullName).Replace('\','/')
-    if ($relative -match '(?i)(^|/)(GameAssembly\.dll|UnityPlayer\.dll|CarX Drift Racing Online 2\.exe|global-metadata\.dat|Verification\.dll|CarX\.BepInEx\.Verification\.dll|doorstop_api\.ini)$') {
-        throw "A game input, precomputed map, or test plugin entered the package: $relative"
+$temporaryZip = $zipPath + '.' + [Guid]::NewGuid().ToString('N') + '.partial'
+$archive = [IO.Compression.ZipFile]::Open($temporaryZip, [IO.Compression.ZipArchiveMode]::Create)
+try {
+    foreach ($directory in @('BepInEx/plugins/', 'BepInEx/patchers/')) { $null = $archive.CreateEntry($directory) }
+    foreach ($name in @($files.path) + $manifestName) {
+        $null = [IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+            $archive, (Join-Path $stageRoot $name), $name, [IO.Compression.CompressionLevel]::Optimal)
     }
-    if ($relative -match '(?i)(^|/)(pdbsymbols\.[^/]+|msdia[^/]*)$') {
-        throw "An obsolete debug-symbol helper entered the package: $relative"
-    }
-    if ($relative -match '(?i)(^|/)(interop|unity-libs|__pycache__|downloads|cache)(/|$)' -or $relative -match '(?i)\.(pdb|log|pyc)$') {
-        throw "A generated cache, log, or PDB entered the package: $relative"
-    }
-    [ordered]@{path=$relative; length=$entry.Length; sha256=(Get-FileHash -LiteralPath $entry.FullName -Algorithm SHA256).Hash.ToLowerInvariant()}
-}
-[ordered]@{format=1; createdUtc=[DateTime]::UtcNow.ToString('o'); sourceRevision=(Get-SourceRevision $projectRoot); doorstopRevision=(Get-SourceRevision (Join-Path $projectRoot 'src/Doorstop')); initialApiMapIncluded=$false; testPluginsIncluded=$false; files=@($manifest)} |
-    ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $stageRoot 'BepInEx/compatibility/package-manifest.json') -Encoding utf8
+} finally { $archive.Dispose() }
 
-if (-not $StageOnly) {
-    Write-Zip $stageRoot $zipPath @('BepInEx/plugins/','BepInEx/patchers/')
-    $archive = [IO.Compression.ZipFile]::OpenRead($zipPath)
-    try {
-        $names = @($archive.Entries | ForEach-Object { $_.FullName })
-        foreach ($required in @('winhttp.dll','doorstop_config.ini','BepInEx/core/BepInEx.MetadataBootstrap.dll','BepInEx/core/BepInEx.Unity.IL2CPP.dll','BepInEx/compatibility/tools/prepare_api_map.py','BepInEx/compatibility/python/python.exe','BepInEx/core/scripts/normalize_metadata.py','dotnet/coreclr.dll','BepInEx/plugins/','BepInEx/compatibility/source.zip')) {
-            if ($required -cnotin $names) { throw "The ZIP is missing required path: $required" }
-        }
-        foreach ($name in $names) {
-            if ($name.StartsWith('/') -or $name -match '(^|/)\.\.(/|$)|^[A-Za-z]:|\\') { throw "Unsafe ZIP entry: $name" }
-            if ($name -match '(^|/)CarXDoorstop(/|$)') { throw 'The ZIP contains an obsolete enclosing folder.' }
-        }
-    } finally { $archive.Dispose() }
-    $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    ($hash + '  ' + [IO.Path]::GetFileName($zipPath)) | Set-Content -LiteralPath ($zipPath + '.sha256') -Encoding ascii
-}
-[pscustomobject]@{
-    StagePath=$stageRoot
-    SourcePath=$sourceStage
-    ZipPath=$(if ($StageOnly) { $null } else { $zipPath })
-    ZipBytes=$(if ($StageOnly) { $null } else { (Get-Item -LiteralPath $zipPath).Length })
-    FileCount=@($manifest).Count + 1
-    InitialApiMapIncluded=$false
-    TestPluginsIncluded=$false
-}
+$archive = [IO.Compression.ZipFile]::OpenRead($temporaryZip)
+try {
+    if ($archive.Entries.Count -ne $files.Count + 3) { throw 'Unexpected number of ZIP entries.' }
+    foreach ($record in $files) {
+        $entry = $archive.GetEntry($record.path)
+        if (-not $entry -or $entry.Length -ne $record.length) { throw "Invalid ZIP member: $($record.path)" }
+        $stream = $entry.Open()
+        try { $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($stream)).ToLowerInvariant() }
+        finally { $stream.Dispose() }
+        if ($hash -ne $record.sha256) { throw "ZIP checksum mismatch: $($record.path)" }
+    }
+} finally { $archive.Dispose() }
+
+[IO.File]::Move($temporaryZip, $zipPath)
+$hash = Get-Sha256 $zipPath
+"$hash  $([IO.Path]::GetFileName($zipPath))" | Set-Content -LiteralPath ($zipPath + '.sha256') -Encoding ascii
+[pscustomobject]@{ZipPath=$zipPath; StagePath=$stageRoot; SHA256=$hash; FileCount=($files.Count + 1)}

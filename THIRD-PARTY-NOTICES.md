@@ -8,8 +8,7 @@ their original licenses; including them together does not relicense them as MIT.
 
 ## Included components
 
-The original bundled baseline includes the components below. Their original notices and
-licenses are retained with the compatibility source and installable package.
+The installable runtime includes the components below and retains their notices.
 
 | Component | Shipped version / source revision | License | Full text | Applies to |
 | --- | --- | --- | --- | --- |
@@ -34,11 +33,8 @@ licenses are retained with the compatibility source and installable package.
 | .NET runtime third-party notices | 6.0.7 | various; see full notice | [dotnet-THIRD-PARTY-NOTICES.txt](licenses/dotnet-THIRD-PARTY-NOTICES.txt) | loader |
 | Microsoft .NET Windows runtime redistribution terms | 6.0.7 | Microsoft .NET Library terms | [dotnet-Windows-LICENSE-MSFT.txt](licenses/dotnet-Windows-LICENSE-MSFT.txt) | loader |
 | Microsoft.Extensions.* and Microsoft.Bcl.AsyncInterfaces | 6.0.0+4822e3c | MIT | [Microsoft.Extensions-MIT.txt](licenses/Microsoft.Extensions-MIT.txt) | loader |
-| pefile and ordlookup | 2024.8.26 | MIT | [pefile-MIT.txt](licenses/pefile-MIT.txt) | loader |
-| Capstone native disassembler and Python bindings | 5.0.6 | BSD-3-Clause | [Capstone-BSD-3-Clause.txt](licenses/Capstone-BSD-3-Clause.txt) | loader |
-| LLVM-derived portions in Capstone | 5.0.6 | NCSA / LLVM notice | [Capstone-LLVM.txt](licenses/Capstone-LLVM.txt) | loader |
-| Capstone Python binding notice | 5.0.6 | BSD-3-Clause | [Capstone-Python-BSD.txt](licenses/Capstone-Python-BSD.txt) | loader |
-| Python embedded runtime and bundled libraries | 3.14.7 | PSF-2.0 and included third-party terms | [Python-LICENSE.txt](licenses/Python-LICENSE.txt) | loader |
+| Capstone native disassembler | 5.0.9 | BSD-3-Clause | [Capstone-BSD-3-Clause.txt](licenses/Capstone-BSD-3-Clause.txt) | loader |
+| LLVM-derived portions in Capstone | 5.0.9 | NCSA / LLVM notice | [Capstone-LLVM.txt](licenses/Capstone-LLVM.txt) | loader |
 | Microsoft.DiaSymReader.Native.amd64.dll | 16.9.0-beta1.21055.5 / file 14.28.29715.1 | Microsoft .NET Library terms | [Microsoft.DiaSymReader.Native-LICENSE.txt](licenses/Microsoft.DiaSymReader.Native-LICENSE.txt) | loader |
 
 The machine-readable [license manifest](licenses/manifest.json) records each
@@ -50,8 +46,7 @@ In that baseline, bundled BepInEx, Il2CppInterop and their upstream dependencies
 are unchanged. The separate source-build runtime profile rebuilds modified
 UnityDoorstop, unchanged Il2CppInterop.Common 1.5.3 source, and Capstone native 5.0.9
 from commit `022575848782a4801fd150fdbc927effcbca0864` with the maintained correctness,
-version-resource and Windows protection integration. Python bindings stay at 5.0.6;
-the native 5.0.9 BSD/LLVM notices are byte-identical to the retained texts.
+version resources and Windows protection flags. Doorstop uses the native Capstone DLL.
 The follow-up profile also rebuilds Dobby 1.0.5 from unchanged runtime source
 `888d971214900374edbca6206fad6ded8a2c1311`, retaining the official Windows
 feature profile with version resources and compiler protections. Its compiled
@@ -72,10 +67,10 @@ records its static runtime; the original Microsoft notices remain unchanged.
 
 Copyright holders include the BepInEx Team; knah and Il2CppInterop contributors;
 Washi; ds5678; Sam Byass; Ahmed Garhy; iced contributors; Jb Evain and Novell;
-0x0ade and DaNike; Adam Reeve; Ero Carrera; Nguyen Anh Quynh and COSEINC;
-the .NET Foundation, Microsoft and contributors; and the Python Software Foundation.
+0x0ade and DaNike; Adam Reeve; Nguyen Anh Quynh and COSEINC;
+and the .NET Foundation, Microsoft and contributors.
 The full texts preserve the upstream notices, including notices for bundled
-LLVM, uTinyRipper, .NET runtime and Python library portions.
+LLVM, uTinyRipper, and .NET runtime portions.
 
 ## LGPL source and replacement rights
 
@@ -84,18 +79,11 @@ Il2CppInterop remains LGPL-3.0-only. Their licenses permit commercial distributi
 when their conditions are followed. The Il2CppInterop license file also contains
 the incorporated GNU GPL version 3 text.
 
-The original GitHub loader ZIP contains the complete modified Doorstop and compatibility source
-with build/install scripts in `BepInEx/compatibility/source.zip`. The exact
-unmodified BepInEx and Il2CppInterop source snapshots for the bundled DLLs are
-included in `BepInEx/compatibility/sources/`, together with their source manifest
-and [replacement instructions](licenses/SOURCE-COMPLIANCE.txt). This includes
-the upstream build projects and reference assemblies shipped in those source
-repositories; those references are not this game's executables or extracted
-game code and are not relicensed by this project. Nexus runtime ZIPs contain the
-built runtime and required notices. Their SOURCE-DOWNLOADS.txt and
-licenses/SOURCE-COMPLIANCE.txt provide equivalent access to complete corresponding
-source on GitHub, including the separate native submodule snapshot and maintained
-patches/build inputs. No development source archive is uploaded to Nexus.
+The installable ZIP on GitHub and Nexus includes SOURCE-DOWNLOADS.txt and
+[replacement instructions](licenses/SOURCE-COMPLIANCE.txt). These provide
+equivalent access to complete corresponding source, including the pinned
+UnityDoorstop fork, upstream dependencies and the maintained build changes.
+The explicit GitHub source release asset also expands the Doorstop submodule.
 
 Replaceable shared DLLs are used. Users may modify/rebuild the LGPL components
 and replace them with interface-compatible versions. This project imposes no

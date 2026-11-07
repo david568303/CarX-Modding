@@ -9,15 +9,16 @@ Download installable ZIPs from [Releases](https://github.com/david568303/CarX-Mo
 Extract the loader ZIP beside `CarX Drift Racing Online 2.exe`, then launch through Steam.
 The first start can take several minutes to generate interop assemblies.
 The loader discovers native API aliases and normalizes supported metadata for
-BepInEx 6 Unity IL2CPP x64. Install compatible plugins in `BepInEx/plugins`.
+BepInEx 6 Unity IL2CPP x64. Setup requires only the game and the ZIP.
+Install compatible plugins in `BepInEx/plugins`.
 The release also provides a complete source ZIP, licenses and SHA-256 checksums.
 
 ## Repositories
 
 - [UnityDoorstop fork](https://github.com/david568303/UnityDoorstop): native loader changes,
   original upstream ancestry and LGPL license.
-- This repository: API discovery, metadata normalization/bootstrap, tests
-  and release packaging. `src/Doorstop` is a Git submodule pinned to an exact fork commit.
+- This repository: the managed metadata bootstrap, tests and release packaging.
+  `src/Doorstop` pins the native loader and API discovery implementation.
 
 There is no separate release-only repository. Each release contains the loader ZIP,
 licenses, checksums and corresponding source. A submodule is a pinned Git dependency;
@@ -29,13 +30,12 @@ or clone recursively.
 ```powershell
 git clone --recurse-submodules https://github.com/david568303/CarX-Modding.git
 cd CarX-Modding
-.\tools\build.ps1
-.\tools\package.ps1
+.\tools\build-release.ps1 -Version 2026.11.07.4
 ```
 
-Use PowerShell 7, existing Visual Studio C++ x64 build tools and a .NET SDK with the
-.NET 6 targeting pack. The pure test programs use the .NET 10 SDK. Scripts do not install
-a compiler. Provisioning downloads pinned, hash-verified BepInEx/Python/dependency inputs.
+Use PowerShell 7, existing Visual Studio C++ x64 build tools, CMake, and a .NET SDK
+that can target .NET 6. The release builder checks the hashes of its pinned inputs.
+Python is used only by developer tests and historical build tools.
 See [third-party notices](THIRD-PARTY-NOTICES.md) for exact dependency versions and source.
 See [source-built DLLs and runtime packaging](docs/SOURCE-BUILDS.md) for the reviewed source-build profile.
 
@@ -68,10 +68,10 @@ See [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md) and [licenses/](licenses/).
 
 ## Maintained layout
 
-- `src/ApiResolver`, `src/MetadataNormalizer`, `src/MetadataBootstrap`: compatibility code.
+- `src/MetadataBootstrap`: managed metadata discovery and normalization.
+- `src/ApiResolver`, `src/MetadataNormalizer`: reference implementations for testing.
 - `src/Doorstop`: pinned upstream-history fork.
 - `tests`, `tools`: relevant tests and build/package commands.
 - `.work`, `release`: ignored dependencies, private test inputs and generated outputs.
 
-Only the surviving compatibility implementation is published. Abandoned implementations,
-private game inputs, generated metadata/interop and logs are excluded.
+Release assets exclude private game inputs, generated metadata and interop, and logs.
