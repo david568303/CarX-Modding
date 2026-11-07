@@ -21,6 +21,14 @@ forwarding, unload/reload/rebase behavior and enabled import hooks without start
 CoreCLR, the external helper or the game. Source-build package boundary tests run with
 `python -B -m unittest discover -s tests/SourceBuildPackaging -v`.
 
+The [Dobby comparison suite](../tests/DobbyCompatibility/README.md) builds fixture
+hosts and exercises the actual BepInEx native-detour wrapper on isolated CoreCLR
+6.0.7 inputs. It compares original/rebuilt DLL behavior without starting the game.
+Two existing conditional-branch relocation failures remain failures on both
+libraries; its nonzero correctness exit is reported separately from the absence
+of new regressions in the exercised cases. See that suite's README for commands,
+expected results and scope.
+
 Private game tests are optional. Set `CARX_API_TEST_GAME_DIR` for native binder tests,
 `CARX_API_FIXTURE_DIR` for the two-build canonical mapping/oracle tests and
 `CARX_NORMALIZED_FIXTURE` for metadata mutation tests. Fixture directories are ignored.
