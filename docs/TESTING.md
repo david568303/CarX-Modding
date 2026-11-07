@@ -15,6 +15,12 @@ Python requirements install analysis packages; no compiler installation is requi
 Native tests build synthetic test DLLs with the existing Visual Studio compiler.
 No game process is required for these checks.
 
+The source-build loader has a separate [synthetic host smoke suite](../tests/NativeLoaderSmoke/README.md).
+Supply explicit candidate/baseline DLLs and fresh output directories to verify proxy
+forwarding, unload/reload/rebase behavior and enabled import hooks without starting
+CoreCLR, the external helper or the game. Source-build package boundary tests run with
+`python -B -m unittest discover -s tests/SourceBuildPackaging -v`.
+
 Private game tests are optional. Set `CARX_API_TEST_GAME_DIR` for native binder tests,
 `CARX_API_FIXTURE_DIR` for the two-build canonical mapping/oracle tests and
 `CARX_NORMALIZED_FIXTURE` for metadata mutation tests. Fixture directories are ignored.
