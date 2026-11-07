@@ -10,8 +10,57 @@ contributor. This does not establish the sole archive trigger or a source-line c
 
 ## Source-build candidate and validation
 
-Development is isolated on `fix/nexus-release-analysis`; `main` and existing GitHub
+Development began on `fix/nexus-release-analysis`; the additional Dobby build is
+isolated on `fix/dobby-windows-build`. `main` and existing GitHub
 releases are unchanged. No support request has been sent on the user's behalf.
+
+### Dobby follow-up build
+
+The unchanged official Dobby DLL has a matching Zillya detection, as detailed
+below. Its official [1.0.5 release](https://github.com/BepInEx/Dobby/releases/tag/v1.0.5)
+was downloaded independently and its x64 DLL matches the bundled SHA-256
+`8015de7d867245a1095d13947a63763878e4cf5fd3d3089b63cc39200b055ded`.
+This supplies a concrete dependency to investigate; it does not reveal a vendor's
+rule or prove that Dobby is the sole archive trigger.
+
+The reviewed replacement uses the same pinned runtime source and official
+Windows x64 Release feature profile, with truthful version resources and ordinary
+MSVC stack protection, CFG, ASLR, DEP and high-entropy address support. It retains
+normal static CRT startup, all seven exports and ordinals, and the two-phase
+Prepare/Commit API. No Dobby runtime source was changed, and no extra runtime
+installer or DLL is required. CET compatibility is not claimed.
+
+The exact replacement is 212,480 bytes, SHA-256
+`fac2aa3399e8b73352181bfaa5fb9e3f55eb4ebf638d35c04a0857e5bc764001`.
+Its [completed direct report](https://www.virustotal.com/gui/file/fac2aa3399e8b73352181bfaa5fb9e3f55eb4ebf638d35c04a0857e5bc764001/detection)
+shows **0/71**, analysed **7 November 2026 at 02:54:54 Europe/Madrid**.
+Zillya, Cynet, SecureAge, Microsoft and VBA32 explicitly returned `Undetected`.
+The other three replacement reports were reopened and still showed 0/71 with
+these vendors `Undetected`; their analysis dates remain the dated times below.
+These observations apply to the exact DLL bytes and do not establish the final
+archive result or future verdicts.
+
+The [source-only Dobby comparison suite](../tests/DobbyCompatibility/README.md)
+ran against both the original and replacement: **11/13 native cases passed on
+each**, and **4/4 actual BepInEx wrapper cases passed on each** using bundled
+CoreCLR 6.0.7. No new regressions or other behavior mismatches were detected in
+the exercised cases; all 925 runtime inputs remained unchanged. Both DLLs retain
+the same two native correctness failures: pinned Dobby widens a short conditional
+branch without correcting for the four-byte length change. Generated branch
+targets and trampoline bytes match between builds. The suite honestly exits 1
+for these existing failures. This build does not repair that upstream runtime
+bug, and these synthetic checks do not establish universal plugin compatibility
+or replace an in-game test.
+
+The `2026.11.07.2` package profile replaces four DLLs and retains the other 248
+executable files. It adds the LLVM clear-cache attribution/exception license and
+a Dobby MSVC runtime notice while preserving every existing license. The build
+helper, source pins and reproducibility limits are recorded in
+[SOURCE-BUILDS.md](SOURCE-BUILDS.md). The final ZIP still requires its own analysis
+and Nexus publication; the file 15 quarantine described here remains the current
+published result until that occurs.
+
+### Previously reviewed three-DLL build
 
 Two replacement DLLs completed direct scans on **7 November 2026 at 01:08:29
 Europe/Madrid**, each at **0/71**. Cynet, Microsoft and VBA32 explicitly returned

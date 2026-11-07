@@ -1,8 +1,7 @@
 # CarX Drift Racing Online 2 — UnityDoorstop & BepInEx Fix
 
 Loader compatibility fixes for **CarX Drift Racing Online 2 (Steam, Windows x64)**.
-Enables UnityDoorstop and BepInEx 6 Unity IL2CPP by discovering native API bindings
-without PDB files and normalizing the game's supported metadata formats.
+Includes the loader, compatibility tools, and build and test sources.
 
 ## Downloads
 
@@ -45,16 +44,13 @@ in the repository or release assets.
 
 ## Compatibility and verification
 
-The loader discovers API assignments from the paired native game binaries and validates
-canonical identities against native code evidence. It does not require PDBs, symbol
-servers, stored game addresses or a table of game versions. The normalizer currently
+The loader discovers and validates API assignments from the paired native game binaries.
+The normalizer currently
 supports recognized metadata schemas 38 and 39; a new schema or obfuscator redesign may
 require further implementation.
 
-Earlier local tests loaded BepInEx successfully after removing debug metadata from
-isolated game copies and denying symbol access. Synthetic tests cover map validation,
-cache publication, metadata handling and bootstrap behavior. The native resolver
-suite uses synthetic fixture DLLs.
+Local checks cover API discovery, map validation, cache publication, metadata handling
+and bootstrap behavior. Native regression tests use synthetic fixture DLLs.
 
 Public CI runs tests that need no proprietary game files. Private-fixture tests report
 skips when their inputs are absent; the full game-based checks are local-only.

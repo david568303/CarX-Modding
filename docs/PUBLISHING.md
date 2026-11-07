@@ -104,6 +104,13 @@ Review `nexus-package-verification.json`, checksums and runtime checks before up
 then wait for Nexus's analysis. Report actual scan results; a completed scan or low
 detection count does not establish safety or confirm a false positive.
 
+For the isolated source-build profile, use the four-DLL instructions in
+[SOURCE-BUILDS.md](SOURCE-BUILDS.md) and `tools/package-av-workaround.py` instead.
+Publish its installable Runtime ZIP only. A short release summary can state:
+"Rebuilt Dobby with Windows version metadata and security protections to address
+antivirus detections." Keep detailed build evidence and limitations in the docs;
+do not describe a pending or quarantined release as cleared.
+
 ## License scope
 
 Original integration code, scripts, tests and documentation are MIT licensed.
