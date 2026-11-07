@@ -1,0 +1,34 @@
+// SPDX-License-Identifier: BSD-3-Clause
+// Truthful version/provenance metadata for a CarX-Modding build of Capstone.
+#include <winver.h>
+
+1 VERSIONINFO
+FILEVERSION 5,0,9,0
+PRODUCTVERSION 5,0,9,0
+FILEFLAGSMASK VS_FFI_FILEFLAGSMASK
+FILEFLAGS 0
+FILEOS VOS_NT_WINDOWS32
+FILETYPE VFT_DLL
+FILESUBTYPE 0
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904b0"
+    BEGIN
+      VALUE "CompanyName", "Capstone project contributors\0"
+      VALUE "FileDescription", "Capstone disassembly engine (CarX-Modding source build)\0"
+      VALUE "FileVersion", "5.0.9.0\0"
+      VALUE "InternalName", "capstone\0"
+      VALUE "LegalCopyright", "Copyright (c) 2013, COSEINC. All rights reserved.\0"
+      VALUE "License", "Capstone retains its BSD/LLVM component licenses; see LICENSE.TXT and LICENSE_LLVM.TXT.\0"
+      VALUE "OriginalFilename", "capstone.dll\0"
+      VALUE "ProductName", "Capstone disassembly framework\0"
+      VALUE "ProductVersion", "5.0.9\0"
+      VALUE "Comments", "https://www.capstone-engine.org; source 022575848782a4801fd150fdbc927effcbca0864; encoded-immediate initialization correctness fix; https://github.com/david568303/CarX-Modding\0"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x0409, 1200
+  END
+END

@@ -1,0 +1,14 @@
+diff --git a/arch/X86/X86Mapping.c b/arch/X86/X86Mapping.c
+--- a/arch/X86/X86Mapping.c
++++ b/arch/X86/X86Mapping.c
+@@ -2187,6 +2187,10 @@ uint8_t X86_immediate_size(unsigned int id, uint8_t *enc_size)
+ 	// binary searching since the IDs are sorted in order
+ 	unsigned int left, right, m;
+ 
++	// A miss must not leave callers' encoded-immediate size uninitialized.
++	if (enc_size != NULL)
++		*enc_size = 0;
++
+ 	right = ARR_SIZE(x86_imm_size) - 1;
+ 
+ 	if (id < x86_imm_size[0].id || id > x86_imm_size[right].id)
