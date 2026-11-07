@@ -205,6 +205,39 @@ try
         });
 
 
+    Test("overlapping standard sections cannot publish cache or config", () =>
+    {
+        var context = Context("overlapping standard metadata");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Iced.dll"), Path.Combine(context.CoreDirectory, "Iced.dll"), true);
+        File.WriteAllText(context.UnityPlayerPath, "6000.3.0b1", System.Text.Encoding.Unicode);
+        var original = StandardMetadata(39);
+        // FieldDefaultValues and FieldMarshaledSizes have the same fixture stride and count.
+        Put(original, 8 + 9 * 12, (uint)Word(original, 8 + 7 * 12));
+        File.WriteAllBytes(context.OriginalMetadataPath, original);
+        try
+        {
+            Bootstrap.Prepare(context, Path.Combine(context.BepInExRoot, "metadata-bootstrap.log"));
+            throw new Exception("Expected overlapping sections to be rejected");
+        }
+        catch (InvalidDataException error) when (error.Message.Contains("sections overlap")) { }
+        Check(!File.Exists(context.ConfigPath) && !File.Exists(context.OutputPath), "Overlapping sections were published");
+    });
+
+    Test("ambiguous embedded Unity versions require a PE version resource", () =>
+    {
+        var context = Context("ambiguous embedded Unity versions");
+        File.Copy(Path.Combine(AppContext.BaseDirectory, "Iced.dll"), Path.Combine(context.CoreDirectory, "Iced.dll"), true);
+        File.WriteAllText(context.UnityPlayerPath, "6000.3.0a5\0 6000.3.0b1", System.Text.Encoding.Unicode);
+        File.WriteAllBytes(context.OriginalMetadataPath, StandardMetadata(39));
+        try
+        {
+            Bootstrap.Prepare(context, Path.Combine(context.BepInExRoot, "metadata-bootstrap.log"));
+            throw new Exception("Expected an ambiguous Unity version to be rejected");
+        }
+        catch (InvalidDataException error) when (error.Message.Contains("multiple embedded versions")) { }
+        Check(!File.Exists(context.ConfigPath) && !File.Exists(context.OutputPath), "Ambiguous schema was published");
+    });
+
     foreach (var version in new[] { 38, 39 })
         Test($"obfuscated schema {version} reconstruction with independent native ranges", () =>
         {

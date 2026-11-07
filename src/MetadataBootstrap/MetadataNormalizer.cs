@@ -1,4 +1,5 @@
 using System.Buffers.Binary;
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,6 +12,7 @@ internal static class MetadataNormalizer
 {
     internal const uint Magic = 0xFAB11BAF;
     internal const int HeaderSize = 8 + 12 * 31;
+    private const int MaxUnversionedPlayerSize = 64 * 1024 * 1024;
 
     private static readonly string[] Names =
     {
@@ -32,7 +34,7 @@ internal static class MetadataNormalizer
     {
         (0, 1, 2), (0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0),
     };
-    private static readonly Regex UnityVersion = new(@"(?<![0-9])([0-9]{4}|[0-9]{1,2})\.([0-9]+)\.([0-9]+)([abfp])([0-9]+)",
+    private static readonly Regex UnityVersion = new(@"(?<![0-9])([0-9]{4}|[0-9]{1,2})\.([0-9]{1,9})\.([0-9]{1,9})([abfp])([0-9]{1,9})(?![0-9])",
         RegexOptions.CultureInvariant);
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
@@ -76,7 +78,18 @@ internal static class MetadataNormalizer
 
     private static (string Version, int Schema) GetSchema(string playerPath)
     {
-        var match = UnityVersion.Match(Encoding.Unicode.GetString(File.ReadAllBytes(playerPath)));
+        var productVersion = FileVersionInfo.GetVersionInfo(playerPath).ProductVersion?.Trim();
+        Match match;
+        if (string.IsNullOrEmpty(productVersion))
+            match = ReadEmbeddedVersion(playerPath);
+        else
+        {
+            // Unity can append a build identifier after the version in the PE resource.
+            var versionToken = productVersion.Split(' ', 2)[0];
+            match = UnityVersion.Match(versionToken);
+            if (match.Length != versionToken.Length)
+                throw new InvalidDataException("UnityPlayer.dll has an unrecognized PE product version.");
+        }
         if (!match.Success)
             throw new InvalidDataException("Cannot read a Unity product version from UnityPlayer.dll.");
         int Number(int group) => int.Parse(match.Groups[group].Value, CultureInfo.InvariantCulture);
@@ -86,6 +99,20 @@ internal static class MetadataNormalizer
         if (version.CompareTo((6000, 5, 0, 0, 3)) >= 0)
             throw new InvalidDataException("This Unity release uses a newer metadata schema.");
         return (match.Value, version.CompareTo((6000, 3, 0, 1, 1)) < 0 ? 38 : 39);
+    }
+
+    private static Match ReadEmbeddedVersion(string playerPath)
+    {
+        using var stream = File.OpenRead(playerPath);
+        if (stream.Length > MaxUnversionedPlayerSize)
+            throw new InvalidDataException("UnityPlayer.dll has no PE product version and exceeds the fallback scan limit.");
+        using var reader = new BinaryReader(stream);
+        var text = Encoding.Unicode.GetString(reader.ReadBytes((int)stream.Length));
+        var match = UnityVersion.Match(text);
+        for (var other = match.NextMatch(); other.Success; other = other.NextMatch())
+            if (!text.AsSpan(other.Index, other.Length).SequenceEqual(text.AsSpan(match.Index, match.Length)))
+                throw new InvalidDataException("UnityPlayer.dll has no PE product version and contains multiple embedded versions.");
+        return match;
     }
 
     private static object ValidateStandard(byte[] raw, int version)
@@ -103,6 +130,12 @@ internal static class MetadataNormalizer
                 || (size == 0 && count != 0))
                 throw new InvalidDataException($"Standard metadata section {Names[i]} has an invalid range or count.");
             sections[i] = new Section(size == 0 ? 0 : (int)start, (int)size, (int)count, i * 12, size == 0 ? 0 : (int)start);
+        }
+        var end = HeaderSize;
+        foreach (var section in sections.Where(section => section.Size != 0).OrderBy(section => section.Start))
+        {
+            if (section.Start < end) throw new InvalidDataException("Standard metadata sections overlap.");
+            end = section.Start + section.Size;
         }
         return ValidateTables(raw, sections, new byte[Names.Length][], CheckStrides(sections, version));
     }
