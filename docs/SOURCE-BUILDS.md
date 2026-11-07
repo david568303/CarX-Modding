@@ -4,6 +4,19 @@ The Windows x64 runtime uses Doorstop for native API discovery and a .NET
 bootstrap for metadata normalization. The source build uses PowerShell 7,
 installed Visual Studio x64 C++ tools, CMake and a .NET SDK that targets .NET 6.
 
+## Startup sequence
+
+1. Doorstop discovers the aliases used by Unity's loader and checks each one
+   against the loaded GameAssembly. It uses the validated map in memory and
+   publishes a copy for the metadata bootstrap.
+2. After Unity's native initialization, the managed bootstrap checks the
+   installed metadata against the paired binaries. It validates the decoded
+   tables and checks the input hashes again before publishing the cache.
+3. The bootstrap hands control to the stock BepInEx preloader. On later
+   launches it reuses the metadata only when the input and output hashes match.
+
+## Build
+
 Clone the source with submodules and run:
 
 ```powershell
