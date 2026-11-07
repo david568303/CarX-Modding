@@ -150,7 +150,7 @@ internal static class MetadataNormalizer
                 throw new InvalidDataException("The native header length does not lead to a rotating string literal offset.");
 
         var header = new byte[length];
-        Xor(raw.AsSpan(0, length), header, native.Header.Key);
+        Xor(raw.AsSpan(0, length), header, native.Header.Key, native.Header.Direction);
         var nativeRanges = ResolveNativeRanges(raw.Length, header, native);
         byte[]? output = null;
         Dictionary<string, object>? evidence = null;
@@ -194,7 +194,7 @@ internal static class MetadataNormalizer
                         ["method"] = "structural-and-native-validated",
                         ["header_length"] = length,
                         ["header_xor_key"] = native.Header.Key,
-                        ["header_xor_direction"] = 1,
+                        ["header_xor_direction"] = native.Header.Direction,
                         ["triple_order"] = new { offset = order.Offset, size = order.Size, count = order.Count },
                         ["index_widths"] = new
                         {
@@ -219,7 +219,7 @@ internal static class MetadataNormalizer
                             format = 1, method = "verified-init-callgraph-and-native-decoder-dataflow",
                             init_rva = Hex(native.InitRva), function_rva = Hex(native.FunctionRva),
                             native_functions_examined = native.FunctionsExamined,
-                            header = new { length, key = native.Header.Key, loop_rva = Hex(native.Header.LoopRva) },
+                            header = new { length, key = native.Header.Key, direction = native.Header.Direction, loop_rva = Hex(native.Header.LoopRva) },
                             sections = nativeEvidence,
                         },
                     };
@@ -545,9 +545,9 @@ internal static class MetadataNormalizer
     private static string Hex(int value) => $"0x{value:x}";
     private static string Hash(byte[] bytes) => Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant();
 
-    private static void Xor(ReadOnlySpan<byte> input, Span<byte> output, int key)
+    private static void Xor(ReadOnlySpan<byte> input, Span<byte> output, int key, int direction = 1)
     {
-        for (var i = 0; i < input.Length; i++)
-            output[i] = (byte)(input[i] ^ (byte)(key + i));
+        for (var i = 0; i < input.Length; i++, key += direction)
+            output[i] = (byte)(input[i] ^ (byte)key);
     }
 }

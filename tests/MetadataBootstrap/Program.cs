@@ -64,7 +64,7 @@ byte[] StandardMetadata(int version)
 void Put(byte[] bytes, int offset, uint value) => BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(offset), value);
 int Word(byte[] bytes, int offset) => BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(offset));
 
-(byte[] Encoded, NativeDecoder Decoder) Obfuscate(byte[] standard)
+(byte[] Encoded, NativeDecoder Decoder) Obfuscate(byte[] standard, int headerDirection)
 {
     const int headerLength = 31 * 12;
     const int headerKey = 213;
@@ -89,8 +89,8 @@ int Word(byte[] bytes, int offset) => BinaryPrimitives.ReadInt32LittleEndian(byt
         for (var j = 0; j < size; j++) encoded[rawOffset + j] ^= (byte)(size + sectionKeyAddend + j);
         sections.Add(new NativeSection(slot + 8, slot + 4, -claimedOffsetDelta, 1, sectionKeyAddend, 0, 0, 0));
     }
-    for (var i = 0; i < headerLength; i++) encoded[i] ^= (byte)(headerKey + i);
-    return (encoded, new NativeDecoder(new NativeHeader(headerLength, headerKey, 0), sections.ToArray(), 0, 0, 0));
+    for (var i = 0; i < headerLength; i++) encoded[i] ^= (byte)(headerKey + headerDirection * i);
+    return (encoded, new NativeDecoder(new NativeHeader(headerLength, headerKey, headerDirection, 0), sections.ToArray(), 0, 0, 0));
 }
 
 var temporary = Path.Combine(Path.GetTempPath(), "Metadata bootstrap tests " + Guid.NewGuid().ToString("N"));
@@ -239,10 +239,11 @@ try
     });
 
     foreach (var version in new[] { 38, 39 })
-        Test($"obfuscated schema {version} reconstruction with independent native ranges", () =>
+    foreach (var direction in new[] { 1, -1 })
+        Test($"obfuscated schema {version} header direction {direction} with independent native ranges", () =>
         {
             var standard = StandardMetadata(version);
-            var (encoded, native) = Obfuscate(standard);
+            var (encoded, native) = Obfuscate(standard, direction);
             var (normalized, _) = MetadataNormalizer.Normalize(encoded, version, native);
             Check(normalized.AsSpan().SequenceEqual(standard), "Obfuscated fixture did not reconstruct byte for byte");
             var sections = (NativeSection[])native.Sections.Clone();

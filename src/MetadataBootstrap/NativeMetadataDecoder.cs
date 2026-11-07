@@ -7,7 +7,7 @@ using Iced.Intel;
 
 namespace BepInEx.MetadataBootstrap;
 
-internal sealed record NativeHeader(int Length, int Key, int LoopRva);
+internal sealed record NativeHeader(int Length, int Key, int Direction, int LoopRva);
 internal sealed record NativeSection(long SizeField, long OffsetField, long Adjustment, long SizeCoefficient,
     long Constant, int AllocationRva, int CopyRva, int XorRva);
 internal sealed record NativeDecoder(NativeHeader Header, NativeSection[] Sections, int FunctionRva, int InitRva,
@@ -77,16 +77,28 @@ internal static class NativeMetadataDecoder
             if (length == 0 || (Base(xor) != index && Index(xor) != index) || Base(xor) == Index(xor))
                 continue;
 
-            int? key = null;
+            (int Key, int Direction)? transform = null;
             for (var j = at - 1; j >= Math.Max(0, at - 4); j--)
             {
                 var lea = instructions[j];
                 if (lea.Mnemonic != Mnemonic.Lea || Destination(lea) != Register.RAX
                     || lea.Op1Kind != OpKind.Memory || Base(lea) != index || Index(lea) != Register.None) continue;
-                key = (int)(Displacement(lea) & 255);
+                transform = ((int)(Displacement(lea) & 255), 1);
                 break;
             }
-            if (key is null) continue;
+            if (transform is null && at >= 2)
+            {
+                // A descending stream materializes the key, then subtracts the loop index's low byte.
+                var subtract = instructions[at - 1];
+                var move = instructions[at - 2];
+                if (subtract.Mnemonic == Mnemonic.Sub && subtract.Op0Register == Register.AL
+                    && Source(subtract) == index && subtract.Op1Register is not (Register.AH or Register.BH or Register.CH or Register.DH)
+                    && move.Mnemonic == Mnemonic.Mov
+                    && move.Op0Register is Register.AL or Register.AX or Register.EAX or Register.RAX
+                    && TryImmediate(move, out var key))
+                    transform = ((int)(key & 255), -1);
+            }
+            if (transform is not { } header) continue;
 
             var allocations = new List<int>();
             for (var j = 0; j < at; j++)
@@ -103,7 +115,7 @@ internal static class NativeMetadataDecoder
                 }
             }
             if (allocations.Count == 1)
-                yield return new HeaderLoop(new NativeHeader(length, key.Value, image.Rva(xor.IP)), at, allocations[0]);
+                yield return new HeaderLoop(new NativeHeader(length, header.Key, header.Direction, image.Rva(xor.IP)), at, allocations[0]);
         }
     }
 
