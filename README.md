@@ -8,6 +8,11 @@ Includes the loader, compatibility tools, and build and test sources.
 Download installable ZIPs from [Releases](https://github.com/david568303/CarX-Modding/releases).
 Extract the loader ZIP beside `CarX Drift Racing Online 2.exe`, then launch through Steam.
 The first start can take several minutes to generate interop assemblies.
+
+If the Unity library server has not published the game's engine patch yet,
+startup selects the closest available earlier patch in the same Unity branch.
+Downloads are validated before BepInEx starts generating bindings. Later starts
+check for the exact patch again. Custom library sources remain configurable.
 The loader discovers native API aliases and normalizes supported metadata for
 BepInEx 6 Unity IL2CPP x64. Setup requires only the game and the ZIP.
 Install compatible plugins in `BepInEx/plugins`.

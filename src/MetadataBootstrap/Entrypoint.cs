@@ -1,4 +1,6 @@
 using System.Reflection;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace Doorstop;
 
@@ -11,6 +13,11 @@ public static class Entrypoint
         {
             var context = BepInEx.MetadataBootstrap.BootstrapContext.FromEnvironment();
             logPath = Path.Combine(context.BepInExRoot, "metadata-bootstrap.log");
+            var productVersion = FileVersionInfo.GetVersionInfo(context.UnityPlayerPath).ProductVersion ?? "";
+            var match = Regex.Match(productVersion, @"^(\d+)\.(\d+)\.(\d+)");
+            if (!match.Success)
+                throw new InvalidDataException("UnityPlayer has no recognized Unity version.");
+            BepInEx.MetadataBootstrap.UnityBaseLibraries.Prepare(context, logPath, Version.Parse(match.Value));
             BepInEx.MetadataBootstrap.Bootstrap.Log(logPath, "Preparing metadata before BepInEx startup.");
             BepInEx.MetadataBootstrap.Bootstrap.Prepare(context, logPath);
 

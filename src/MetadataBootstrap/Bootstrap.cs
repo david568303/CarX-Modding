@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 
 [assembly: InternalsVisibleTo("MetadataBootstrap.Tests")]
+[assembly: InternalsVisibleTo("UnityBaseLibraries.Tests")]
 
 namespace BepInEx.MetadataBootstrap;
 
@@ -160,7 +161,10 @@ internal static class Bootstrap
         MetadataNormalizer.Decode(context, temporaryOutput, logPath);
     }
 
-    internal static string UpdateMetadataConfig(string content, string value)
+    internal static string UpdateMetadataConfig(string content, string value) =>
+        UpdateConfigSetting(content, "GlobalMetadataPath", value);
+
+    internal static string UpdateConfigSetting(string content, string key, string value)
     {
         var newline = content.Contains("\r\n", StringComparison.Ordinal) ? "\r\n" : "\n";
         var lines = Regex.Split(content, "(?<=\\n)").Where(line => line.Length > 0).ToList();
@@ -175,7 +179,7 @@ internal static class Bootstrap
         void InsertKey()
         {
             EnsureNewline();
-            result.Append("GlobalMetadataPath = ").Append(value).Append(newline);
+            result.Append(key).Append(" = ").Append(value).Append(newline);
         }
         foreach (var line in lines)
         {
@@ -190,7 +194,7 @@ internal static class Bootstrap
                 foundKeyInSection = false;
             }
             var equals = body.IndexOf('=');
-            if (inSection && equals >= 0 && body[..equals].Trim() == "GlobalMetadataPath")
+            if (inSection && equals >= 0 && body[..equals].Trim() == key)
             {
                 result.Append(body[..(equals + 1)]).Append(' ').Append(value).Append(end);
                 foundKeyInSection = true;

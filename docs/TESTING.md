@@ -10,11 +10,17 @@ python -B -m unittest discover -s tests/MetadataNormalizer -v
 $runtime = .\tools\prepare-bepinex.ps1
 $core = Join-Path $runtime 'BepInEx/core'
 dotnet run --project tests/MetadataBootstrap -c Release "-p:BepInExCoreDirectory=$core"
+dotnet run --project tests/UnityBaseLibraries -c Release "-p:BepInExCoreDirectory=$core"
 ```
 
 The Python tests exercise the reference analyzers. They are developer tools.
 Native tests build synthetic test DLLs with the existing Visual Studio compiler.
 No game process is required for these checks.
+
+The base-library suite simulates missing releases, offline cache reuse, invalid
+archives and interrupted updates. It checks that an exact archive replaces the
+fallback and invalidates the previous binding hash, while custom sources remain
+under user control.
 
 The source-build loader has a separate [synthetic host smoke suite](../tests/NativeLoaderSmoke/README.md).
 Supply explicit candidate/baseline DLLs and fresh output directories to verify proxy

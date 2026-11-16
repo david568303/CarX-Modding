@@ -33,6 +33,8 @@ jobs:
           $core = Join-Path $runtime 'BepInEx/core'
           dotnet run --project tests/MetadataBootstrap -c Release "-p:BepInExCoreDirectory=$core"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          dotnet run --project tests/UnityBaseLibraries -c Release "-p:BepInExCoreDirectory=$core"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - name: Build loader and test native resolver
         shell: pwsh
         run: |
