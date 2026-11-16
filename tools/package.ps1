@@ -75,7 +75,6 @@ Add-PackageFile $CapstoneDll 'BepInEx/core/CarX.Capstone.dll'
 Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/winhttp.dll') 'winhttp.dll'
 Add-PackageFile (Join-Path $projectRoot '.work/build/doorstop-x64/.doorstop_version') '.doorstop_version'
 Add-PackageFile (Join-Path $projectRoot '.work/build/MetadataBootstrap/Release/net6.0/BepInEx.MetadataBootstrap.dll') 'BepInEx/core/BepInEx.MetadataBootstrap.dll'
-Add-PackageFile (Join-Path $doorstopRoot 'LICENSE') 'licenses/UnityDoorstop-fork-LGPL.txt'
 
 @"
 [General]
@@ -92,41 +91,40 @@ corlib_dir=dotnet
 auto_refresh=true
 "@ | Set-Content -LiteralPath (Join-Path $stageRoot 'doorstop_config.ini') -Encoding ascii
 
-@"
-CarX Drift Racing Online 2 - BepInEx runtime $Version
-
-Extract this ZIP directly into the game folder beside
-CarX Drift Racing Online 2.exe and launch normally through Steam.
-
-Doorstop discovers the game's Unity APIs and the BepInEx bootstrap prepares
-its metadata automatically. First launch can take several minutes while
-BepInEx generates interop assemblies. No Python installation is required.
-
-Install BepInEx 6 Unity IL2CPP plugins in BepInEx\plugins.
-Logs are in BepInEx\LogOutput.log and BepInEx\metadata-bootstrap.log.
-
-If upgrading from an older release, close the game first. You can remove the
-old BepInEx\compatibility folder and the old metadata scripts under
-BepInEx\core\scripts. Keep your plugins and configuration.
-
-Source and build instructions: https://github.com/david568303/CarX-Modding
-Exact corresponding sources are in SOURCE-DOWNLOADS.txt.
-Licenses and replacement instructions are in LICENSE,
-THIRD-PARTY-NOTICES.md and licenses/.
-"@ | Set-Content -LiteralPath (Join-Path $stageRoot 'README.txt') -Encoding ascii
-
 $legacyNotices = @('Capstone-Python-BSD.txt', 'Python-LICENSE.txt', 'pefile-MIT.txt')
-foreach ($item in Get-PackageLicenseFiles $projectRoot) {
-    if ([IO.Path]::GetFileName($item.Entry) -in $legacyNotices -or $item.Entry -eq 'licenses/manifest.json') { continue }
-    Add-PackageFile (Join-Path $projectRoot $item.Source) $item.Entry
-}
 $licenses = Get-Content -LiteralPath (Join-Path $projectRoot 'licenses/manifest.json') -Raw | ConvertFrom-Json
 $licenses.notices = @($licenses.notices | Where-Object file -NotIn $legacyNotices)
 foreach ($notice in $licenses.notices) {
-    $file = Join-Path $stageRoot ('licenses/' + $notice.file)
+    $file = Join-Path $projectRoot ('licenses/' + $notice.file)
     if ((Get-Sha256 $file) -ne $notice.sha256) { throw "License checksum mismatch: $($notice.file)" }
 }
-$licenses | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath (Join-Path $stageRoot 'licenses/manifest.json') -Encoding utf8
+
+$sourceCompliance = 'licenses/SOURCE-COMPLIANCE.txt'
+$licenseText = @(
+    'CarX Drift Racing Online 2 runtime licenses and notices'
+    'Section labels identify the original notice paths. All notices are included in this file.'
+    foreach ($item in Get-PackageLicenseFiles $projectRoot) {
+        if ([IO.Path]::GetFileName($item.Entry) -in $legacyNotices -or
+            $item.Entry -in @('licenses/manifest.json', $sourceCompliance)) { continue }
+        ''
+        "===== $($item.Entry) ====="
+        $text = Get-Content -LiteralPath (Join-Path $projectRoot $item.Source) -Raw
+        if ($item.Source -eq 'THIRD-PARTY-NOTICES.md') {
+            $text = $text.Replace('each runtime''s SOURCE-DOWNLOADS.txt', 'the exact corresponding source section below')
+        }
+        $text
+    }
+    ''
+    '===== licenses/UnityDoorstop-fork-LGPL.txt ====='
+    Get-Content -LiteralPath (Join-Path $doorstopRoot 'LICENSE') -Raw
+    ''
+    '===== licenses/manifest.json ====='
+    $licenses | ConvertTo-Json -Depth 10
+    ''
+    "===== $sourceCompliance ====="
+    $complianceText = Get-Content -LiteralPath (Join-Path $projectRoot $sourceCompliance) -Raw
+    $complianceText.Replace('SOURCE-DOWNLOADS.txt at the root of the runtime ZIP', 'The exact corresponding source section below').Replace('SOURCE-DOWNLOADS.txt', 'the exact corresponding source section below')
+)
 
 $sources = @(
     @{component='CarX compatibility and build scripts'; repository='david568303/CarX-Modding'; commit=$rootRevision},
@@ -136,7 +134,7 @@ $sources = @(
     @{component='Capstone'; repository='capstone-engine/capstone'; commit='022575848782a4801fd150fdbc927effcbca0864'},
     @{component='Dobby'; repository='BepInEx/Dobby'; commit='888d971214900374edbca6206fad6ded8a2c1311'}
 )
-$sourceText = @('Exact corresponding source for the Windows x64 runtime', '')
+$sourceText = @('', 'EXACT CORRESPONDING SOURCE FOR THE WINDOWS X64 RUNTIME', '')
 foreach ($source in $sources) {
     $source.url = "https://codeload.github.com/$($source.repository)/zip/$($source.commit)"
     $sourceText += @($source.component, $source.url, '')
@@ -146,7 +144,7 @@ $sourceText += @(
     'The CarX repository contains the Capstone and Dobby patches, build scripts and notices.',
     "Build instructions: https://github.com/david568303/CarX-Modding/blob/$rootRevision/docs/SOURCE-BUILDS.md"
 )
-$sourceText | Set-Content -LiteralPath (Join-Path $stageRoot 'SOURCE-DOWNLOADS.txt') -Encoding ascii
+($licenseText + $sourceText) | Set-Content -LiteralPath (Join-Path $stageRoot 'LICENSES') -Encoding utf8
 
 $manifestName = 'BepInEx/core/package-manifest.json'
 $files = @(foreach ($item in Get-ChildItem -LiteralPath $stageRoot -File -Recurse -Force | Sort-Object FullName) {
@@ -155,7 +153,7 @@ $files = @(foreach ($item in Get-ChildItem -LiteralPath $stageRoot -File -Recurs
     [ordered]@{path=$name; length=$item.Length; sha256=(Get-Sha256 $item.FullName)}
 })
 $required = @(
-    'LICENSE', 'THIRD-PARTY-NOTICES.md', 'SOURCE-DOWNLOADS.txt', 'doorstop_config.ini', 'winhttp.dll',
+    'LICENSES', 'doorstop_config.ini', 'winhttp.dll',
     'BepInEx/core/CarX.Capstone.dll', 'BepInEx/core/BepInEx.MetadataBootstrap.dll',
     'BepInEx/core/BepInEx.Unity.IL2CPP.dll', 'BepInEx/core/Iced.dll', 'dotnet/coreclr.dll'
 )

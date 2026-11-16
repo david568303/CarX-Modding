@@ -54,7 +54,7 @@ LLVM clear-cache component's attribution and complete Apache 2.0 with LLVM
 exception terms are retained in
 [Dobby-LLVM-exception-NOTICE.txt](licenses/Dobby-LLVM-exception-NOTICE.txt).
 Exact revisions, modifications and build instructions are in
-[SOURCE-BUILDS.md](docs/SOURCE-BUILDS.md) and each runtime's SOURCE-DOWNLOADS.txt.
+[SOURCE-BUILDS.md](docs/SOURCE-BUILDS.md) and each runtime's LICENSES file.
 
 The source-built native DLLs statically link Microsoft's release C/C++ runtime.
 The [MSVC runtime notice](licenses/MSVC-2026-CRT-NOTICE.txt),
